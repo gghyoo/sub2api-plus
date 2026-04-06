@@ -113,16 +113,8 @@ func (r *ModelPricingResolver) applyChannelOverrides(ctx context.Context, groupI
 
 // applyTokenOverrides 应用 token 模式的渠道覆盖
 func (r *ModelPricingResolver) applyTokenOverrides(chPricing *ChannelModelPricing, resolved *ResolvedPricing) {
-	// 过滤掉所有价格字段都为空的无效 interval
-	validIntervals := filterValidIntervals(chPricing.Intervals)
-
-	// 如果有有效的区间定价，使用区间
-	if len(validIntervals) > 0 {
-		resolved.Intervals = validIntervals
-		return
-	}
-
-	// 否则用 flat 字段覆盖 BasePricing
+	// 无论是否有区间定价，都需要用 flat 字段覆盖 BasePricing，
+	// 这样超出所有区间的 context 可以回退到渠道默认定价而非 nil。
 	if resolved.BasePricing == nil {
 		resolved.BasePricing = &ModelPricing{}
 	}
@@ -146,6 +138,12 @@ func (r *ModelPricingResolver) applyTokenOverrides(chPricing *ChannelModelPricin
 	}
 	if chPricing.ImageOutputPrice != nil {
 		resolved.BasePricing.ImageOutputPricePerToken = *chPricing.ImageOutputPrice
+	}
+
+	// 如果有有效的区间定价，附加区间列表
+	validIntervals := filterValidIntervals(chPricing.Intervals)
+	if len(validIntervals) > 0 {
+		resolved.Intervals = validIntervals
 	}
 }
 

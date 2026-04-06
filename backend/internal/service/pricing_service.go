@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -347,9 +348,25 @@ func (s *PricingService) downloadPricingData() error {
 	return nil
 }
 
-// parsePricingData 解析价格数据（处理各种格式）
+// parsePricingData 解析价格数据（自动检测格式）
+// 支持两种数据源：
+//   - LiteLLM 格式: map[model_name]{input_cost_per_token: ...}
+//   - OpenRouter 格式: {"data": [{id, pricing: {prompt, completion, ...}}]}
 func (s *PricingService) parsePricingData(body []byte) (map[string]*LiteLLMModelPricing, error) {
-	// 首先解析为 map[string]json.RawMessage
+	// 快速检测是否为 OpenRouter 格式（顶层有 "data" 键且值为数组）
+	var probe struct {
+		Data json.RawMessage `json:"data"`
+	}
+	if err := json.Unmarshal(body, &probe); err == nil && probe.Data != nil && len(probe.Data) > 0 && probe.Data[0] == '[' {
+		return s.parseOpenRouterData(body)
+	}
+
+	// 回退到 LiteLLM 格式
+	return s.parseLiteLLMData(body)
+}
+
+// parseLiteLLMData 解析 LiteLLM 格式价格数据
+func (s *PricingService) parseLiteLLMData(body []byte) (map[string]*LiteLLMModelPricing, error) {
 	var rawData map[string]json.RawMessage
 	if err := json.Unmarshal(body, &rawData); err != nil {
 		return nil, fmt.Errorf("parse raw JSON: %w", err)
@@ -359,19 +376,16 @@ func (s *PricingService) parsePricingData(body []byte) (map[string]*LiteLLMModel
 	skipped := 0
 
 	for modelName, rawEntry := range rawData {
-		// 跳过 sample_spec 等文档条目
 		if modelName == "sample_spec" {
 			continue
 		}
 
-		// 尝试解析每个条目
 		var entry LiteLLMRawEntry
 		if err := json.Unmarshal(rawEntry, &entry); err != nil {
 			skipped++
 			continue
 		}
 
-		// 只保留有有效价格的条目
 		if entry.InputCostPerToken == nil && entry.OutputCostPerToken == nil {
 			continue
 		}
@@ -425,6 +439,99 @@ func (s *PricingService) parsePricingData(body []byte) (map[string]*LiteLLMModel
 		return nil, fmt.Errorf("no valid pricing entries found")
 	}
 
+	return result, nil
+}
+
+// openRouterResponse OpenRouter API 响应结构
+type openRouterResponse struct {
+	Data []openRouterModel `json:"data"`
+}
+
+// openRouterModel OpenRouter 单个模型数据
+type openRouterModel struct {
+	ID       string              `json:"id"`
+	Pricing  openRouterPricing   `json:"pricing"`
+	ContextLength int             `json:"context_length"`
+	Metadata openRouterMetadata  `json:"metadata,omitempty"`
+}
+
+// openRouterPricing OpenRouter 定价结构（字符串形式，per-token USD）
+type openRouterPricing struct {
+	Prompt          string `json:"prompt"`
+	Completion      string `json:"completion"`
+	InputCacheRead  string `json:"input_cache_read"`
+	InputCacheWrite string `json:"input_cache_write"`
+	Image           string `json:"image"`
+	Request         string `json:"request"`
+}
+
+// openRouterMetadata OpenRouter 模型元数据
+type openRouterMetadata struct {
+	Provider string `json:"provider"`
+}
+
+// parseOpenRouterData 解析 OpenRouter 格式价格数据
+func (s *PricingService) parseOpenRouterData(body []byte) (map[string]*LiteLLMModelPricing, error) {
+	var resp openRouterResponse
+	if err := json.Unmarshal(body, &resp); err != nil {
+		return nil, fmt.Errorf("parse OpenRouter JSON: %w", err)
+	}
+
+	result := make(map[string]*LiteLLMModelPricing, len(resp.Data))
+	for _, model := range resp.Data {
+		promptPrice, _ := strconv.ParseFloat(model.Pricing.Prompt, 64)
+		completionPrice, _ := strconv.ParseFloat(model.Pricing.Completion, 64)
+
+		// 跳过无有效价格的模型
+		if promptPrice == 0 && completionPrice == 0 {
+			continue
+		}
+
+		pricing := &LiteLLMModelPricing{
+			InputCostPerToken:  promptPrice,
+			OutputCostPerToken: completionPrice,
+			Mode:               "chat",
+		}
+
+		// 缓存价格（非零时设置）
+		if cacheRead, _ := strconv.ParseFloat(model.Pricing.InputCacheRead, 64); cacheRead != 0 {
+			pricing.CacheReadInputTokenCost = cacheRead
+			pricing.SupportsPromptCaching = true
+		}
+		if cacheWrite, _ := strconv.ParseFloat(model.Pricing.InputCacheWrite, 64); cacheWrite != 0 {
+			pricing.CacheCreationInputTokenCost = cacheWrite
+			pricing.SupportsPromptCaching = true
+		}
+		if imagePrice, _ := strconv.ParseFloat(model.Pricing.Image, 64); imagePrice != 0 {
+			pricing.OutputCostPerImage = imagePrice
+		}
+
+		// 提供商信息
+		if model.Metadata.Provider != "" {
+			pricing.LiteLLMProvider = model.Metadata.Provider
+		}
+
+		// 存储完整 ID（如 anthropic/claude-sonnet-4）
+		result[model.ID] = pricing
+
+		// 同时存储去掉提供商前缀的模型名（如 claude-sonnet-4）
+		// 这样两种查询方式都能匹配
+		if idx := strings.Index(model.ID, "/"); idx != -1 {
+			shortName := model.ID[idx+1:]
+			if shortName != "" {
+				// 仅在短名称尚未被占用时存储，避免同名模型互相覆盖
+				if _, exists := result[shortName]; !exists {
+					result[shortName] = pricing
+				}
+			}
+		}
+	}
+
+	if len(result) == 0 {
+		return nil, fmt.Errorf("no valid pricing entries found in OpenRouter data")
+	}
+
+	logger.LegacyPrintf("service.pricing", "[Pricing] Parsed %d OpenRouter models into %d pricing entries", len(resp.Data), len(result))
 	return result, nil
 }
 

@@ -188,3 +188,99 @@ func TestParsePricingData_PreservesServiceTierPriorityFields(t *testing.T) {
 	require.InDelta(t, 0.0000005, pricing.CacheReadInputTokenCostPriority, 1e-12)
 	require.True(t, pricing.SupportsServiceTier)
 }
+
+func TestParsePricingData_OpenRouterFormat(t *testing.T) {
+	svc := &PricingService{}
+	body := []byte(`{
+		"data": [
+			{
+				"id": "anthropic/claude-sonnet-4",
+				"pricing": {
+					"prompt": "0.000003",
+					"completion": "0.000015",
+					"input_cache_read": "0.0000003",
+					"input_cache_write": "0.000003"
+				},
+				"context_length": 200000,
+				"metadata": {"provider": "anthropic"}
+			},
+			{
+				"id": "openai/gpt-5.2",
+				"pricing": {
+					"prompt": "0.0000025",
+					"completion": "0.00001",
+					"input_cache_read": "0",
+					"input_cache_write": "0"
+				},
+				"context_length": 128000,
+				"metadata": {"provider": "openai"}
+			},
+			{
+				"id": "google/gemini-2.5-pro",
+				"pricing": {
+					"prompt": "0.00000125",
+					"completion": "0.000005",
+					"input_cache_read": "0.0000003125",
+					"input_cache_write": "0"
+				},
+				"context_length": 1048576,
+				"metadata": {"provider": "google"}
+			},
+			{
+				"id": "some/free-model",
+				"pricing": {
+					"prompt": "0",
+					"completion": "0"
+				}
+			}
+		]
+	}`)
+
+	data, err := svc.parsePricingData(body)
+	require.NoError(t, err)
+
+	// Free model should be skipped
+	_, hasFree := data["some/free-model"]
+	require.False(t, hasFree, "free models should be skipped")
+
+	// Full ID should work
+	claude := data["anthropic/claude-sonnet-4"]
+	require.NotNil(t, claude)
+	require.InDelta(t, 3e-6, claude.InputCostPerToken, 1e-12)
+	require.InDelta(t, 15e-6, claude.OutputCostPerToken, 1e-12)
+	require.InDelta(t, 0.3e-6, claude.CacheReadInputTokenCost, 1e-12)
+	require.InDelta(t, 3e-6, claude.CacheCreationInputTokenCost, 1e-12)
+	require.True(t, claude.SupportsPromptCaching)
+	require.Equal(t, "anthropic", claude.LiteLLMProvider)
+
+	// Short name (without provider prefix) should also work
+	claudeShort := data["claude-sonnet-4"]
+	require.NotNil(t, claudeShort)
+	require.Same(t, claude, claudeShort)
+
+	// OpenAI model
+	gpt := data["gpt-5.2"]
+	require.NotNil(t, gpt)
+	require.InDelta(t, 2.5e-6, gpt.InputCostPerToken, 1e-12)
+
+	// Gemini model
+	gemini := data["gemini-2.5-pro"]
+	require.NotNil(t, gemini)
+	require.InDelta(t, 1.25e-6, gemini.InputCostPerToken, 1e-12)
+	require.InDelta(t, 0.3125e-6, gemini.CacheReadInputTokenCost, 1e-12)
+}
+
+func TestParsePricingData_LiteLLMFormatStillWorks(t *testing.T) {
+	svc := &PricingService{}
+	body := []byte(`{
+		"claude-3-opus": {
+			"input_cost_per_token": 0.000015,
+			"output_cost_per_token": 0.000075
+		}
+	}`)
+
+	data, err := svc.parsePricingData(body)
+	require.NoError(t, err)
+	require.NotNil(t, data["claude-3-opus"])
+	require.InDelta(t, 15e-6, data["claude-3-opus"].InputCostPerToken, 1e-12)
+}
