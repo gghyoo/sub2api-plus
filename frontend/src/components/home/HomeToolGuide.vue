@@ -133,13 +133,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, h, type Component } from 'vue'
+import { ref, reactive, h, computed, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import Icon from '@/components/icons/Icon.vue'
 import { useClipboard } from '@/composables/useClipboard'
+import { useAppStore } from '@/stores/app'
 
 const { t } = useI18n()
 const { copyToClipboard: clipboardCopy } = useClipboard()
+const appStore = useAppStore()
 
 const copiedId = ref<string | null>(null)
 
@@ -315,7 +317,7 @@ function showShellTabs(tool: ToolConfig): boolean {
 }
 
 // --- Code Generation ---
-const BASE_URL = 'https://your-domain.com'
+const BASE_URL = computed(() => appStore.apiBaseUrl || window.location.origin)
 const API_KEY = 'sk-your-api-key'
 
 function getFiles(tool: ToolConfig): FileConfig[] {
@@ -335,7 +337,7 @@ function getFiles(tool: ToolConfig): FileConfig[] {
 }
 
 function getClaudeCodeFiles(platform: string, shell: string): FileConfig[] {
-  const baseUrl = platform === 'antigravity' ? `${BASE_URL}/antigravity` : BASE_URL
+  const baseUrl = platform === 'antigravity' ? `${BASE_URL.value}/antigravity` : BASE_URL.value
 
   let envPath: string
   let envContent: string
