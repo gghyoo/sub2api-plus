@@ -1,4 +1,4 @@
-# 简化版 GoReleaser 配置 - 仅发布 x86_64 GHCR 镜像
+# 简化版 GoReleaser 配置 - 仅发布 x86_64 DockerHub 镜像
 version: 2
 
 project_name: sub2api-plus
@@ -36,15 +36,16 @@ checksum:
 changelog:
   disable: true
 
-# 仅 GHCR x86_64 镜像
+# 仅 DockerHub x86_64 镜像
 dockers:
-  - id: ghcr-amd64
+  - id: dockerhub-amd64
     goos: linux
     goarch: amd64
+    skip_push: '{{ if eq .Env.DOCKERHUB_USERNAME "skip" }}true{{ else }}false{{ end }}'
     image_templates:
-      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api-plus:{{ .Version }}-amd64"
-      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api-plus:{{ .Version }}"
-      - "ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api-plus:latest"
+      - "{{ .Env.DOCKERHUB_USERNAME }}/sub2api-plus:{{ .Version }}-amd64"
+      - "{{ .Env.DOCKERHUB_USERNAME }}/sub2api-plus:{{ .Version }}"
+      - "{{ .Env.DOCKERHUB_USERNAME }}/sub2api-plus:latest"
     dockerfile: Dockerfile.goreleaser
     use: buildx
     extra_files:
@@ -69,7 +70,7 @@ release:
   skip_upload: true
   header: |
     > AI API Gateway Platform (Fork) - 将 AI 订阅配额分发和管理
-    > ⚡ Simple Release: 仅包含 x86_64 GHCR 镜像
+    > ⚡ Simple Release: 仅包含 x86_64 DockerHub 镜像
 
     {{ .Env.TAG_MESSAGE }}
 
@@ -80,7 +81,7 @@ release:
 
     **Docker (x86_64 only):**
     ```bash
-    docker pull ghcr.io/{{ .Env.GITHUB_REPO_OWNER_LOWER }}/sub2api-plus:{{ .Version }}
+    docker pull {{ .Env.DOCKERHUB_USERNAME }}/sub2api-plus:{{ .Version }}
     ```
 
     ## 📚 Documentation
