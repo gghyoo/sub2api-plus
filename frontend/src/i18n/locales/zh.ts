@@ -103,10 +103,13 @@ export default {
     modelsTable: {
       title: '支持的模型',
       subtitle: '所有可用模型及定价，价格单位为每百万 Token（USD）',
-      model: '模型',
+      model: '模型ID',
       inputPrice: '输入价格',
       outputPrice: '输出价格',
+      cacheReadPrice: '缓存读取',
+      cacheCreationPrice: '缓存写入',
       endpoints: '端点',
+      platform: '适用平台',
       priceUnit: '价格单位：USD / 1M Tokens',
       loadError: '加载模型列表失败'
     },

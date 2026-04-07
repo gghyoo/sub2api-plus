@@ -103,10 +103,13 @@ export default {
     modelsTable: {
       title: 'Supported Models',
       subtitle: 'All available models and pricing, prices are per million tokens (USD)',
-      model: 'Model',
+      model: 'Model ID',
       inputPrice: 'Input Price',
       outputPrice: 'Output Price',
+      cacheReadPrice: 'Cache Read',
+      cacheCreationPrice: 'Cache Write',
       endpoints: 'Endpoints',
+      platform: 'Platform',
       priceUnit: 'Price unit: USD / 1M Tokens',
       loadError: 'Failed to load model list'
     },

@@ -29,6 +29,9 @@
               <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">{{ t('home.modelsTable.model') }}</th>
               <th class="px-4 py-3 text-right font-semibold text-gray-700 dark:text-gray-300">{{ t('home.modelsTable.inputPrice') }}</th>
               <th class="px-4 py-3 text-right font-semibold text-gray-700 dark:text-gray-300">{{ t('home.modelsTable.outputPrice') }}</th>
+              <th class="px-4 py-3 text-right font-semibold text-gray-700 dark:text-gray-300">{{ t('home.modelsTable.cacheReadPrice') }}</th>
+              <th class="px-4 py-3 text-right font-semibold text-gray-700 dark:text-gray-300">{{ t('home.modelsTable.cacheCreationPrice') }}</th>
+              <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">{{ t('home.modelsTable.platform') }}</th>
               <th class="px-4 py-3 text-left font-semibold text-gray-700 dark:text-gray-300">{{ t('home.modelsTable.endpoints') }}</th>
             </tr>
           </thead>
@@ -42,7 +45,13 @@
               ]"
             >
               <td class="px-4 py-3">
-                <span class="font-mono text-xs font-medium text-gray-900 dark:text-white">{{ model.id }}</span>
+                <span
+                  class="cursor-pointer border-b border-dashed border-gray-400 font-mono text-xs font-medium text-gray-900 transition-colors hover:border-primary-500 hover:text-primary-600 dark:text-white dark:hover:border-primary-400 dark:hover:text-primary-400"
+                  :title="copiedModel === model.id ? t('home.toolGuide.copied') : t('home.toolGuide.copy')"
+                  @click="copyModelId(model.id)"
+                >
+                  {{ copiedModel === model.id ? '✓' : '' }}{{ model.id }}
+                </span>
               </td>
               <td class="px-4 py-3 text-right">
                 <span v-if="model.input_price_per_mtok" class="text-gray-700 dark:text-gray-300">${{ model.input_price_per_mtok.toFixed(2) }}</span>
@@ -51,6 +60,27 @@
               <td class="px-4 py-3 text-right">
                 <span v-if="model.output_price_per_mtok" class="text-gray-700 dark:text-gray-300">${{ model.output_price_per_mtok.toFixed(2) }}</span>
                 <span v-else class="text-gray-400 dark:text-dark-500">-</span>
+              </td>
+              <td class="px-4 py-3 text-right">
+                <span v-if="model.cache_read_price_per_mtok" class="text-gray-700 dark:text-gray-300">${{ model.cache_read_price_per_mtok.toFixed(2) }}</span>
+                <span v-else class="text-gray-400 dark:text-dark-500">-</span>
+              </td>
+              <td class="px-4 py-3 text-right">
+                <span v-if="model.cache_creation_price_per_mtok" class="text-gray-700 dark:text-gray-300">${{ model.cache_creation_price_per_mtok.toFixed(2) }}</span>
+                <span v-else class="text-gray-400 dark:text-dark-500">-</span>
+              </td>
+              <td class="px-4 py-3">
+                <div class="flex flex-wrap gap-1.5">
+                  <span
+                    v-for="p in getPlatforms(model.endpoints)"
+                    :key="p.label"
+                    class="inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium"
+                    :class="p.color"
+                  >
+                    {{ p.label }}
+                  </span>
+                  <span v-if="getPlatforms(model.endpoints).length === 0" class="text-gray-400 dark:text-dark-500">-</span>
+                </div>
               </td>
               <td class="px-4 py-3">
                 <div class="flex flex-wrap gap-1.5">
@@ -87,12 +117,48 @@ interface ModelInfo {
   created_at: string
   input_price_per_mtok?: number
   output_price_per_mtok?: number
+  cache_read_price_per_mtok?: number
+  cache_creation_price_per_mtok?: number
   endpoints?: string[]
 }
 
 const models = ref<ModelInfo[]>([])
 const loading = ref(true)
 const error = ref('')
+const copiedModel = ref<string | null>(null)
+
+function getPlatforms(endpoints?: string[]): { label: string; color: string }[] {
+  if (!endpoints || endpoints.length === 0) return []
+  const platforms: { label: string; color: string }[] = []
+  const hasAnthropic = endpoints.some(ep => ep === '/v1/messages' && !ep.startsWith('/antigravity'))
+  const hasOpenAI = endpoints.some(ep => ep === '/v1/responses' || ep === '/v1/chat/completions')
+  const hasGemini = endpoints.some(ep => ep.startsWith('/v1beta'))
+  const hasAntigravity = endpoints.some(ep => ep.startsWith('/antigravity'))
+  if (hasAnthropic) platforms.push({ label: 'Anthropic', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' })
+  if (hasOpenAI) platforms.push({ label: 'OpenAI', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' })
+  if (hasGemini) platforms.push({ label: 'Gemini', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' })
+  if (hasAntigravity) platforms.push({ label: 'Antigravity', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' })
+  return platforms
+}
+
+async function copyModelId(modelId: string) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(modelId)
+    } else {
+      const textarea = document.createElement('textarea')
+      textarea.value = modelId
+      textarea.style.position = 'fixed'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textarea)
+    }
+    copiedModel.value = modelId
+    setTimeout(() => { copiedModel.value = null }, 2000)
+  } catch {}
+}
 
 onMounted(async () => {
   try {

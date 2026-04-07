@@ -941,13 +941,15 @@ func (h *GatewayHandler) PublicModels(c *gin.Context) {
 	}
 
 	type modelInfo struct {
-		ID          string   `json:"id"`
-		Type        string   `json:"type"`
-		DisplayName string   `json:"display_name,omitempty"`
-		CreatedAt   string   `json:"created_at"`
-		InputPrice  float64  `json:"input_price_per_mtok,omitempty"`
-		OutputPrice float64  `json:"output_price_per_mtok,omitempty"`
-		Endpoints   []string `json:"endpoints,omitempty"`
+		ID                 string   `json:"id"`
+		Type               string   `json:"type"`
+		DisplayName        string   `json:"display_name,omitempty"`
+		CreatedAt          string   `json:"created_at"`
+		InputPrice         float64  `json:"input_price_per_mtok,omitempty"`
+		OutputPrice        float64  `json:"output_price_per_mtok,omitempty"`
+		CacheReadPrice     float64  `json:"cache_read_price_per_mtok,omitempty"`
+		CacheCreationPrice float64  `json:"cache_creation_price_per_mtok,omitempty"`
+		Endpoints          []string `json:"endpoints,omitempty"`
 	}
 
 	// 批量获取定价：Channel (DB) → OpenRouter → omit
@@ -964,6 +966,8 @@ func (h *GatewayHandler) PublicModels(c *gin.Context) {
 		if bp, ok := pricingMap[id]; ok {
 			info.InputPrice = bp.InputPricePer1MTokens
 			info.OutputPrice = bp.OutputPricePer1MTokens
+			info.CacheReadPrice = bp.CacheReadPricePer1MTokens
+			info.CacheCreationPrice = bp.CacheCreationPricePer1MTokens
 		}
 		if eps, ok := endpointsMap[id]; ok {
 			info.Endpoints = eps

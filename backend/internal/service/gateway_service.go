@@ -8720,8 +8720,10 @@ func (s *GatewayService) debugLogGatewaySnapshot(tag string, headers http.Header
 
 // ModelPricingBrief is a brief pricing summary for a model
 type ModelPricingBrief struct {
-	InputPricePer1MTokens  float64 `json:"input_price_per_1m_tok"`
-	OutputPricePer1MTokens float64 `json:"output_price_per_1m_tok"`
+	InputPricePer1MTokens         float64 `json:"input_price_per_1m_tok"`
+	OutputPricePer1MTokens        float64 `json:"output_price_per_1m_tok"`
+	CacheReadPricePer1MTokens     float64 `json:"cache_read_price_per_1m_tok,omitempty"`
+	CacheCreationPricePer1MTokens float64 `json:"cache_creation_price_per_1m_tok,omitempty"`
 }
 
 // GetModelsPricing returns pricing info for the given model IDs.
@@ -8743,6 +8745,12 @@ func (s *GatewayService) GetModelsPricing(ctx context.Context, modelIDs []string
 					brief.OutputPricePer1MTokens = *chPricing.OutputPrice * 1_000_000
 					hasPricing = true
 				}
+				if chPricing.CacheReadPrice != nil {
+					brief.CacheReadPricePer1MTokens = *chPricing.CacheReadPrice * 1_000_000
+				}
+				if chPricing.CacheWritePrice != nil {
+					brief.CacheCreationPricePer1MTokens = *chPricing.CacheWritePrice * 1_000_000
+				}
 				if hasPricing {
 					result[modelID] = brief
 					continue
@@ -8756,10 +8764,17 @@ func (s *GatewayService) GetModelsPricing(ctx context.Context, modelIDs []string
 			if resolved != nil && resolved.BasePricing != nil {
 				p := resolved.BasePricing
 				if p.InputPricePerToken > 0 || p.OutputPricePerToken > 0 {
-					result[modelID] = &ModelPricingBrief{
+					brief := &ModelPricingBrief{
 						InputPricePer1MTokens:  p.InputPricePerToken * 1_000_000,
 						OutputPricePer1MTokens: p.OutputPricePerToken * 1_000_000,
 					}
+					if p.CacheReadPricePerToken > 0 {
+						brief.CacheReadPricePer1MTokens = p.CacheReadPricePerToken * 1_000_000
+					}
+					if p.CacheCreationPricePerToken > 0 {
+						brief.CacheCreationPricePer1MTokens = p.CacheCreationPricePerToken * 1_000_000
+					}
+					result[modelID] = brief
 				}
 			}
 		}
@@ -8776,10 +8791,10 @@ func (s *GatewayService) GetModelEndpoints(ctx context.Context) map[string][]str
 	}
 
 	platformToEndpoints := map[string][]string{
-		"anthropic":    {"/v1/messages"},
-		"openai":       {"/v1/responses"},
-		"gemini":       {"/v1beta/models"},
-		"antigravity":  {"/v1/messages", "/antigravity/v1/messages"},
+		"anthropic":   {"/v1/messages"},
+		"openai":      {"/v1/responses"},
+		"gemini":      {"/v1beta/models"},
+		"antigravity": {"/v1/messages", "/antigravity/v1/messages"},
 	}
 
 	modelPlatforms := make(map[string]map[string]struct{})

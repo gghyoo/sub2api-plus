@@ -11,7 +11,7 @@
     </div>
 
     <!-- Tool Cards Stacked Vertically -->
-    <div class="mx-auto max-w-4xl space-y-8">
+    <div class="mx-auto max-w-6xl space-y-8">
       <!-- Tool Card -->
       <div
         v-for="tool in tools"
@@ -371,7 +371,14 @@ $env:CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=1`
     "ANTHROPIC_BASE_URL": "${baseUrl}",
     "ANTHROPIC_AUTH_TOKEN": "${API_KEY}",
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
-    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0"
+    "CLAUDE_CODE_ATTRIBUTION_HEADER": "0",
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL": "glm-5-turbo",
+    "ANTHROPIC_DEFAULT_OPUS_MODEL": "glm-5.1",
+    "ANTHROPIC_DEFAULT_SONNET_MODEL": "glm-5-turbo",
+    "ANTHROPIC_SMALL_FAST_MODEL": "glm-5-turbo",
+    "ANTHROPIC_MODEL": "glm-5.1",
+    "ANTHROPIC_REASONING_MODEL": "glm-5.1",
+    "API_TIMEOUT_MS": "3000000"
   }
 }`
 
