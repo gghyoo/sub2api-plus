@@ -8777,7 +8777,7 @@ func (s *GatewayService) GetModelEndpoints(ctx context.Context) map[string][]str
 
 	platformToEndpoints := map[string][]string{
 		"anthropic":    {"/v1/messages"},
-		"openai":       {"/v1/chat/completions", "/v1/responses"},
+		"openai":       {"/v1/responses"},
 		"gemini":       {"/v1beta/models"},
 		"antigravity":  {"/v1/messages", "/antigravity/v1/messages"},
 	}

@@ -99,6 +99,17 @@ export default {
       antigravity: 'Antigravity',
       more: 'More'
     },
+    // Models Table
+    modelsTable: {
+      title: 'Supported Models',
+      subtitle: 'All available models and pricing, prices are per million tokens (USD)',
+      model: 'Model',
+      inputPrice: 'Input Price',
+      outputPrice: 'Output Price',
+      endpoints: 'Endpoints',
+      priceUnit: 'Price unit: USD / 1M Tokens',
+      loadError: 'Failed to load model list'
+    },
     // Tool Usage Guide
     toolGuide: {
       title: 'Quick Start Guide',

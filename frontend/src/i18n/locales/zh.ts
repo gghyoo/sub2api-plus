@@ -99,6 +99,17 @@ export default {
       antigravity: 'Antigravity',
       more: '更多'
     },
+    // 模型价格表
+    modelsTable: {
+      title: '支持的模型',
+      subtitle: '所有可用模型及定价，价格单位为每百万 Token（USD）',
+      model: '模型',
+      inputPrice: '输入价格',
+      outputPrice: '输出价格',
+      endpoints: '端点',
+      priceUnit: '价格单位：USD / 1M Tokens',
+      loadError: '加载模型列表失败'
+    },
     // 工具使用说明
     toolGuide: {
       title: '快速开始',

@@ -176,6 +176,9 @@
           </div>
         </div>
 
+        <!-- Models Table -->
+        <HomeModelsTable />
+
         <!-- Tool Usage Guide -->
         <HomeToolGuide />
       </div>
@@ -220,6 +223,7 @@ import { useAuthStore, useAppStore } from '@/stores'
 import LocaleSwitcher from '@/components/common/LocaleSwitcher.vue'
 import Icon from '@/components/icons/Icon.vue'
 import HomeToolGuide from '@/components/home/HomeToolGuide.vue'
+import HomeModelsTable from '@/components/home/HomeModelsTable.vue'
 
 const { t } = useI18n()
 
