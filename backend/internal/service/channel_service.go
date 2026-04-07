@@ -449,6 +449,38 @@ func (s *ChannelService) GetChannelModelPricing(ctx context.Context, groupID int
 	return &cp
 }
 
+// FindModelPricingAcrossAllGroups 在所有分组中查找指定模型的渠道定价。
+// 返回第一个找到的定价（优先精确匹配，其次通配符）。
+func (s *ChannelService) FindModelPricingAcrossAllGroups(ctx context.Context, model string) *ChannelModelPricing {
+	cache, err := s.loadCache(ctx)
+	if err != nil || cache == nil {
+		return nil
+	}
+	modelLower := strings.ToLower(model)
+
+	// 1. 精确匹配：遍历所有 pricingByGroupModel
+	for key, pricing := range cache.pricingByGroupModel {
+		if key.model == modelLower {
+			cp := pricing.Clone()
+			return &cp
+		}
+	}
+
+	// 2. 通配符匹配
+	for _, entries := range cache.wildcardByGroupPlatform {
+		for _, entry := range entries {
+			if strings.HasPrefix(modelLower, entry.prefix) {
+				if entry.pricing != nil {
+					cp := entry.pricing.Clone()
+					return &cp
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 // ResolveChannelMapping 解析渠道级模型映射（热路径 O(1)）
 // 返回映射结果，包含映射后的模型名、渠道 ID、计费模型来源。
 func (s *ChannelService) ResolveChannelMapping(ctx context.Context, groupID int64, model string) ChannelMappingResult {

@@ -8724,21 +8724,44 @@ type ModelPricingBrief struct {
 	OutputPricePer1MTokens float64 `json:"output_price_per_1m_tok"`
 }
 
-// GetModelsPricing returns pricing info for the given model IDs
+// GetModelsPricing returns pricing info for the given model IDs.
+// Priority: Channel (DB) pricing → OpenRouter/LiteLLM → omit.
 func (s *GatewayService) GetModelsPricing(ctx context.Context, modelIDs []string) map[string]*ModelPricingBrief {
-	if s.resolver == nil {
-		return nil
-	}
 	result := make(map[string]*ModelPricingBrief, len(modelIDs))
 	for _, modelID := range modelIDs {
-		resolved := s.resolver.Resolve(ctx, PricingInput{Model: modelID})
-		if resolved == nil || resolved.BasePricing == nil {
-			continue
+		// 1. 优先从渠道数据库读取价格
+		if s.channelService != nil {
+			chPricing := s.channelService.FindModelPricingAcrossAllGroups(ctx, modelID)
+			if chPricing != nil {
+				brief := &ModelPricingBrief{}
+				hasPricing := false
+				if chPricing.InputPrice != nil {
+					brief.InputPricePer1MTokens = *chPricing.InputPrice * 1_000_000
+					hasPricing = true
+				}
+				if chPricing.OutputPrice != nil {
+					brief.OutputPricePer1MTokens = *chPricing.OutputPrice * 1_000_000
+					hasPricing = true
+				}
+				if hasPricing {
+					result[modelID] = brief
+					continue
+				}
+			}
 		}
-		p := resolved.BasePricing
-		result[modelID] = &ModelPricingBrief{
-			InputPricePer1MTokens:  p.InputPricePerToken * 1_000_000,
-			OutputPricePer1MTokens: p.OutputPricePerToken * 1_000_000,
+
+		// 2. 回退到 OpenRouter/LiteLLM 动态定价
+		if s.resolver != nil {
+			resolved := s.resolver.Resolve(ctx, PricingInput{Model: modelID})
+			if resolved != nil && resolved.BasePricing != nil {
+				p := resolved.BasePricing
+				if p.InputPricePerToken > 0 || p.OutputPricePerToken > 0 {
+					result[modelID] = &ModelPricingBrief{
+						InputPricePer1MTokens:  p.InputPricePerToken * 1_000_000,
+						OutputPricePer1MTokens: p.OutputPricePerToken * 1_000_000,
+					}
+				}
+			}
 		}
 	}
 	return result

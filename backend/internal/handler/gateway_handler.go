@@ -941,14 +941,17 @@ func (h *GatewayHandler) PublicModels(c *gin.Context) {
 	}
 
 	type modelInfo struct {
-		ID          string  `json:"id"`
-		Type        string  `json:"type"`
-		DisplayName string  `json:"display_name,omitempty"`
-		CreatedAt   string  `json:"created_at"`
-		InputPrice  float64 `json:"input_price_per_mtok,omitempty"`
-		OutputPrice float64 `json:"output_price_per_mtok,omitempty"`
+		ID          string   `json:"id"`
+		Type        string   `json:"type"`
+		DisplayName string   `json:"display_name,omitempty"`
+		CreatedAt   string   `json:"created_at"`
+		InputPrice  float64  `json:"input_price_per_mtok,omitempty"`
+		OutputPrice float64  `json:"output_price_per_mtok,omitempty"`
 		Endpoints   []string `json:"endpoints,omitempty"`
 	}
+
+	// 批量获取定价：Channel (DB) → OpenRouter → omit
+	pricingMap := h.gatewayService.GetModelsPricing(c.Request.Context(), modelIDs)
 
 	models := make([]modelInfo, 0, len(modelIDs))
 	for _, id := range modelIDs {
@@ -957,11 +960,9 @@ func (h *GatewayHandler) PublicModels(c *gin.Context) {
 			Type:      "model",
 			CreatedAt: "2024-01-01T00:00:00Z",
 		}
-		if h.billingService != nil {
-			if p, err := h.billingService.GetModelPricing(id); err == nil && p != nil {
-				info.InputPrice = p.InputPricePerToken * 1_000_000
-				info.OutputPrice = p.OutputPricePerToken * 1_000_000
-			}
+		if bp, ok := pricingMap[id]; ok {
+			info.InputPrice = bp.InputPricePer1MTokens
+			info.OutputPrice = bp.OutputPricePer1MTokens
 		}
 		models = append(models, info)
 	}
