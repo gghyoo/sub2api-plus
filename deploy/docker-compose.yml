@@ -16,8 +16,8 @@ services:
   # Sub2API Application
   # ===========================================================================
   sub2api:
-    image: weishaw/sub2api:latest
-    container_name: sub2api
+    image: gghyoo/sub2api-plus:latest
+    container_name: sub2api-plus
     restart: unless-stopped
     ulimits:
       nofile:
@@ -27,7 +27,7 @@ services:
       - "${BIND_HOST:-0.0.0.0}:${SERVER_PORT:-8080}:8080"
     volumes:
       # Data persistence (config.yaml will be auto-generated here)
-      - sub2api_data:/app/data
+      - sub2api-plus_data:/app/data
       # Optional: Mount custom config.yaml (uncomment and create the file first)
       # Copy config.example.yaml to config.yaml, modify it, then uncomment:
       # - ./config.yaml:/app/data/config.yaml
@@ -144,7 +144,7 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - sub2api-network
+      - sub2api-plus-network
     healthcheck:
       test: ["CMD", "wget", "-q", "-T", "5", "-O", "/dev/null", "http://localhost:8080/health"]
       interval: 30s
@@ -157,7 +157,7 @@ services:
   # ===========================================================================
   postgres:
     image: postgres:18-alpine
-    container_name: sub2api-postgres
+    container_name: sub2api-plus-postgres
     restart: unless-stopped
     ulimits:
       nofile:
@@ -175,7 +175,7 @@ services:
       - POSTGRES_DB=${POSTGRES_DB:-sub2api}
       - TZ=${TZ:-Asia/Shanghai}
     networks:
-      - sub2api-network
+      - sub2api-plus-network
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-sub2api} -d ${POSTGRES_DB:-sub2api}"]
       interval: 10s
@@ -190,7 +190,7 @@ services:
   # ===========================================================================
   redis:
     image: redis:8-alpine
-    container_name: sub2api-redis
+    container_name: sub2api-plus-redis
     restart: unless-stopped
     ulimits:
       nofile:
@@ -210,7 +210,7 @@ services:
       # REDISCLI_AUTH is used by redis-cli for authentication (safer than -a flag)
       - REDISCLI_AUTH=${REDIS_PASSWORD:-}
     networks:
-      - sub2api-network
+      - sub2api-plus-network
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -222,7 +222,7 @@ services:
 # Volumes
 # =============================================================================
 volumes:
-  sub2api_data:
+  sub2api-plus_data:
     driver: local
   postgres_data:
     driver: local
@@ -233,5 +233,5 @@ volumes:
 # Networks
 # =============================================================================
 networks:
-  sub2api-network:
+  sub2api-plus-network:
     driver: bridge

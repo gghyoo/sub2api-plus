@@ -12,8 +12,8 @@
 
 services:
   sub2api:
-    image: weishaw/sub2api:latest
-    container_name: sub2api
+    image: gghyoo/sub2api-plus:latest
+    container_name: sub2api-plus
     restart: unless-stopped
     ulimits:
       nofile:
@@ -22,7 +22,7 @@ services:
     ports:
       - "${BIND_HOST:-0.0.0.0}:${SERVER_PORT:-8080}:8080"
     volumes:
-      - sub2api_data:/app/data
+      - sub2api-plus_data:/app/data
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -101,5 +101,5 @@ services:
       start_period: 30s
 
 volumes:
-  sub2api_data:
+  sub2api-plus_data:
     driver: local
