@@ -449,10 +449,10 @@ type openRouterResponse struct {
 
 // openRouterModel OpenRouter 单个模型数据
 type openRouterModel struct {
-	ID       string              `json:"id"`
-	Pricing  openRouterPricing   `json:"pricing"`
-	ContextLength int             `json:"context_length"`
-	Metadata openRouterMetadata  `json:"metadata,omitempty"`
+	ID            string             `json:"id"`
+	Pricing       openRouterPricing  `json:"pricing"`
+	ContextLength int                `json:"context_length"`
+	Metadata      openRouterMetadata `json:"metadata,omitempty"`
 }
 
 // openRouterPricing OpenRouter 定价结构（字符串形式，per-token USD）
