@@ -41,6 +41,7 @@ type GatewayHandler struct {
 	antigravityGatewayService *service.AntigravityGatewayService
 	userService               *service.UserService
 	billingCacheService       *service.BillingCacheService
+	billingService            *service.BillingService
 	usageService              *service.UsageService
 	apiKeyService             *service.APIKeyService
 	usageRecordWorkerPool     *service.UsageRecordWorkerPool
@@ -68,6 +69,7 @@ func NewGatewayHandler(
 	userMsgQueueService *service.UserMessageQueueService,
 	cfg *config.Config,
 	settingService *service.SettingService,
+	billingService *service.BillingService,
 ) *GatewayHandler {
 	pingInterval := time.Duration(0)
 	maxAccountSwitches := 10
@@ -104,6 +106,7 @@ func NewGatewayHandler(
 		maxAccountSwitchesGemini:  maxAccountSwitchesGemini,
 		cfg:                       cfg,
 		settingService:            settingService,
+		billingService:            billingService,
 	}
 }
 
@@ -901,6 +904,71 @@ func (h *GatewayHandler) AntigravityModels(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"object": "list",
 		"data":   antigravity.DefaultModels(),
+	})
+}
+
+// PublicModels returns models list without requiring authentication.
+// If an API key is provided via Authorization header, returns group-specific models.
+// Otherwise returns all available models with pricing and endpoint info.
+// GET /v1/models (public)
+func (h *GatewayHandler) PublicModels(c *gin.Context) {
+	apiKey, _ := middleware2.GetAPIKeyFromContext(c)
+
+	var groupID *int64
+	var platform string
+
+	if apiKey != nil && apiKey.Group != nil {
+		groupID = &apiKey.Group.ID
+		platform = apiKey.Group.Platform
+	}
+	if forcedPlatform, ok := middleware2.GetForcePlatformFromContext(c); ok && strings.TrimSpace(forcedPlatform) != "" {
+		platform = forcedPlatform
+	}
+
+	availableModels := h.gatewayService.GetAvailableModels(c.Request.Context(), groupID, "")
+
+	var modelIDs []string
+	if len(availableModels) > 0 {
+		modelIDs = availableModels
+	} else if platform == "openai" {
+		for _, m := range openai.DefaultModels {
+			modelIDs = append(modelIDs, m.ID)
+		}
+	} else {
+		for _, m := range claude.DefaultModels {
+			modelIDs = append(modelIDs, m.ID)
+		}
+	}
+
+	type modelInfo struct {
+		ID          string  `json:"id"`
+		Type        string  `json:"type"`
+		DisplayName string  `json:"display_name,omitempty"`
+		CreatedAt   string  `json:"created_at"`
+		InputPrice  float64 `json:"input_price_per_mtok,omitempty"`
+		OutputPrice float64 `json:"output_price_per_mtok,omitempty"`
+		Endpoints   []string `json:"endpoints,omitempty"`
+	}
+
+	models := make([]modelInfo, 0, len(modelIDs))
+	for _, id := range modelIDs {
+		info := modelInfo{
+			ID:        id,
+			Type:      "model",
+			CreatedAt: "2024-01-01T00:00:00Z",
+		}
+		if h.billingService != nil {
+			if p, err := h.billingService.GetModelPricing(id); err == nil && p != nil {
+				info.InputPrice = p.InputPricePerToken * 1_000_000
+				info.OutputPrice = p.OutputPricePerToken * 1_000_000
+			}
+		}
+		models = append(models, info)
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"object": "list",
+		"data":   models,
 	})
 }
 

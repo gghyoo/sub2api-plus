@@ -801,6 +801,25 @@ func (s *BillingService) ForceUpdatePricing() error {
 	return fmt.Errorf("pricing service not initialized")
 }
 
+// GetAllModelPricing returns all models with their pricing information
+func (s *BillingService) GetAllModelPricing() map[string]*ModelPricing {
+	if s.pricingService == nil {
+		return nil
+	}
+
+	allData := s.pricingService.GetAllModelPricing()
+	result := make(map[string]*ModelPricing, len(allData))
+	for modelID, pricing := range allData {
+		mp, err := s.GetModelPricing(modelID)
+		if err != nil {
+			continue
+		}
+		result[modelID] = mp
+		_ = pricing
+	}
+	return result
+}
+
 // ImagePriceConfig 图片计费配置
 type ImagePriceConfig struct {
 	Price1K *float64 // 1K 尺寸价格（nil 表示使用默认值）

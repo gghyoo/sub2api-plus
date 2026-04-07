@@ -99,6 +99,21 @@ export default {
       antigravity: 'Antigravity',
       more: 'More'
     },
+    // Tool Usage Guide
+    toolGuide: {
+      title: 'Quick Start Guide',
+      subtitle: 'Choose your favorite AI coding tool and follow the setup instructions',
+      copy: 'Copy',
+      copied: 'Copied',
+      claudeCodeDesc: 'Official Anthropic command-line coding assistant',
+      codexDesc: 'Official OpenAI command-line coding tool',
+      opencodeDesc: 'Open-source multi-model command-line coding tool',
+      claudeCodeNote: 'Replace your-domain.com with this platform\'s address and sk-your-api-key with your API key.',
+      claudeCodeAntigravityNote: 'The Antigravity endpoint uses the /antigravity prefix. Replace your-domain.com with this platform\'s address and sk-your-api-key with your API key.',
+      codexNote: 'Replace your-domain.com with this platform\'s address and sk-your-api-key with your API key. Make sure this config is at the top of config.toml.',
+      codexConfigHint: 'Ensure this is at the top of config.toml',
+      opencodeHint: 'Save this file as opencode.json in your project root'
+    },
     // CTA section
     cta: {
       title: 'Ready to Get Started?',

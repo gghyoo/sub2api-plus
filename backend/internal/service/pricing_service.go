@@ -960,6 +960,18 @@ func (s *PricingService) getHashFilePath() string {
 	return filepath.Join(s.cfg.Pricing.DataDir, "model_pricing.sha256")
 }
 
+// GetAllModelPricing 返回所有模型及其定价信息（用于公共 API）
+func (s *PricingService) GetAllModelPricing() map[string]*LiteLLMModelPricing {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	result := make(map[string]*LiteLLMModelPricing, len(s.pricingData))
+	for k, v := range s.pricingData {
+		result[k] = v
+	}
+	return result
+}
+
 // isNumeric 检查字符串是否为纯数字
 func isNumeric(s string) bool {
 	for _, c := range s {

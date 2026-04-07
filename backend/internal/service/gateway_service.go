@@ -8717,3 +8717,29 @@ func (s *GatewayService) debugLogGatewaySnapshot(tag string, headers http.Header
 	// 写入文件（调试用，并发写入可能交错但不影响可读性）
 	_, _ = f.WriteString(buf.String())
 }
+
+// ModelPricingBrief is a brief pricing summary for a model
+type ModelPricingBrief struct {
+	InputPricePer1MTokens  float64 `json:"input_price_per_1m_tok"`
+	OutputPricePer1MTokens float64 `json:"output_price_per_1m_tok"`
+}
+
+// GetModelsPricing returns pricing info for the given model IDs
+func (s *GatewayService) GetModelsPricing(ctx context.Context, modelIDs []string) map[string]*ModelPricingBrief {
+	if s.resolver == nil {
+		return nil
+	}
+	result := make(map[string]*ModelPricingBrief, len(modelIDs))
+	for _, modelID := range modelIDs {
+		resolved := s.resolver.Resolve(ctx, PricingInput{Model: modelID})
+		if resolved == nil || resolved.BasePricing == nil {
+			continue
+		}
+		p := resolved.BasePricing
+		result[modelID] = &ModelPricingBrief{
+			InputPricePer1MTokens:  p.InputPricePerToken * 1_000_000,
+			OutputPricePer1MTokens: p.OutputPricePerToken * 1_000_000,
+		}
+	}
+	return result
+}

@@ -99,6 +99,21 @@ export default {
       antigravity: 'Antigravity',
       more: '更多'
     },
+    // 工具使用说明
+    toolGuide: {
+      title: '快速开始',
+      subtitle: '选择你常用的 AI 编程工具，按指引完成配置',
+      copy: '复制',
+      copied: '已复制',
+      claudeCodeDesc: 'Anthropic 官方命令行编程助手',
+      codexDesc: 'OpenAI 官方命令行编程工具',
+      opencodeDesc: '开源多模型命令行编程工具',
+      claudeCodeNote: '请将 your-domain.com 替换为本平台地址，sk-your-api-key 替换为你的 API 密钥。',
+      claudeCodeAntigravityNote: 'Antigravity 端点使用 /antigravity 前缀。请将 your-domain.com 替换为本平台地址，sk-your-api-key 替换为你的 API 密钥。',
+      codexNote: '请将 your-domain.com 替换为本平台地址，sk-your-api-key 替换为你的 API 密钥。config.toml 中确保此配置位于文件顶部。',
+      codexConfigHint: '确保此配置位于 config.toml 文件顶部',
+      opencodeHint: '将此文件保存为 opencode.json 放在项目根目录'
+    },
     // CTA 区块
     cta: {
       title: '准备好开始了吗？',
