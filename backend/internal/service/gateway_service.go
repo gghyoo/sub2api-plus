@@ -8766,3 +8766,54 @@ func (s *GatewayService) GetModelsPricing(ctx context.Context, modelIDs []string
 	}
 	return result
 }
+
+// GetModelEndpoints 返回每个模型支持的 API 端点。
+// 逻辑：遍历所有可调度账号，收集每个模型出现的平台，然后映射到端点。
+func (s *GatewayService) GetModelEndpoints(ctx context.Context) map[string][]string {
+	accounts, err := s.accountRepo.ListSchedulable(ctx)
+	if err != nil || len(accounts) == 0 {
+		return nil
+	}
+
+	platformToEndpoints := map[string][]string{
+		"anthropic":    {"/v1/messages"},
+		"openai":       {"/v1/chat/completions", "/v1/responses"},
+		"gemini":       {"/v1beta/models"},
+		"antigravity":  {"/v1/messages", "/antigravity/v1/messages"},
+	}
+
+	modelPlatforms := make(map[string]map[string]struct{})
+	for _, acc := range accounts {
+		mapping := acc.GetModelMapping()
+		if len(mapping) == 0 {
+			continue
+		}
+		for model := range mapping {
+			if modelPlatforms[model] == nil {
+				modelPlatforms[model] = make(map[string]struct{})
+			}
+			modelPlatforms[model][acc.Platform] = struct{}{}
+		}
+	}
+
+	result := make(map[string][]string, len(modelPlatforms))
+	for model, platforms := range modelPlatforms {
+		epSet := make(map[string]struct{})
+		for p := range platforms {
+			if eps, ok := platformToEndpoints[p]; ok {
+				for _, ep := range eps {
+					epSet[ep] = struct{}{}
+				}
+			}
+		}
+		if len(epSet) > 0 {
+			endpoints := make([]string, 0, len(epSet))
+			for ep := range epSet {
+				endpoints = append(endpoints, ep)
+			}
+			sort.Strings(endpoints)
+			result[model] = endpoints
+		}
+	}
+	return result
+}

@@ -952,6 +952,7 @@ func (h *GatewayHandler) PublicModels(c *gin.Context) {
 
 	// 批量获取定价：Channel (DB) → OpenRouter → omit
 	pricingMap := h.gatewayService.GetModelsPricing(c.Request.Context(), modelIDs)
+	endpointsMap := h.gatewayService.GetModelEndpoints(c.Request.Context())
 
 	models := make([]modelInfo, 0, len(modelIDs))
 	for _, id := range modelIDs {
@@ -963,6 +964,9 @@ func (h *GatewayHandler) PublicModels(c *gin.Context) {
 		if bp, ok := pricingMap[id]; ok {
 			info.InputPrice = bp.InputPricePer1MTokens
 			info.OutputPrice = bp.OutputPricePer1MTokens
+		}
+		if eps, ok := endpointsMap[id]; ok {
+			info.Endpoints = eps
 		}
 		models = append(models, info)
 	}

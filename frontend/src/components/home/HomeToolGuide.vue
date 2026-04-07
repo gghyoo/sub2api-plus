@@ -397,7 +397,7 @@ model_auto_compact_token_limit = 900000
 
 [model_providers.OpenAI]
 name = "OpenAI"
-base_url = "${BASE_URL}/v1"
+base_url = "${BASE_URL.value}/v1"
 wire_api = "responses"
 requires_openai_auth = true`
 
@@ -419,7 +419,7 @@ requires_openai_auth = true`
 }
 
 function getOpenCodeFiles(platform: string): FileConfig[] {
-  const baseRoot = BASE_URL
+  const baseRoot = BASE_URL.value
 
   if (platform === 'antigravity') {
     return [
