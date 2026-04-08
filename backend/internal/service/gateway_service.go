@@ -8891,10 +8891,10 @@ func (s *GatewayService) GetModelEndpoints(ctx context.Context) map[string][]str
 	}
 
 	platformToEndpoints := map[string][]string{
-		"anthropic":   {"/v1/messages"},
-		"openai":      {"/v1/responses"},
+		"anthropic":   {"/v1/messages", "/v1/chat/completions", "/v1/responses"},
+		"openai":      {"/v1/messages", "/v1/responses", "/v1/chat/completions"},
 		"gemini":      {"/v1beta/models"},
-		"antigravity": {"/v1/messages", "/antigravity/v1/messages"},
+		"antigravity": {"/v1/messages", "/v1/chat/completions", "/v1/responses", "/antigravity/v1/messages"},
 	}
 
 	modelPlatforms := make(map[string]map[string]struct{})

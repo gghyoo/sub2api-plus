@@ -87,7 +87,7 @@
                   <span
                     v-for="ep in model.endpoints"
                     :key="ep"
-                    class="inline-flex items-center rounded-md bg-primary-50 px-2 py-0.5 font-mono text-xs text-primary-700 dark:bg-primary-900/30 dark:text-primary-400"
+                    :class="epColor(ep)"
                   >
                     {{ ep }}
                   </span>
@@ -139,6 +139,16 @@ function getPlatforms(endpoints?: string[]): { label: string; color: string }[] 
   if (hasGemini) platforms.push({ label: 'Gemini', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' })
   if (hasAntigravity) platforms.push({ label: 'Antigravity', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' })
   return platforms
+}
+
+function epColor(ep: string): string {
+  const base = 'inline-flex items-center rounded-md px-2 py-0.5 font-mono text-xs'
+  if (ep.startsWith('/antigravity')) return `${base} bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400`
+  if (ep.startsWith('/v1beta')) return `${base} bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400`
+  if (ep === '/v1/messages') return `${base} bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400`
+  if (ep === '/v1/chat/completions') return `${base} bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400`
+  if (ep === '/v1/responses') return `${base} bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400`
+  return `${base} bg-gray-100 text-gray-700 dark:bg-gray-900/30 dark:text-gray-400`
 }
 
 async function copyModelId(modelId: string) {
