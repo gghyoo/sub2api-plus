@@ -156,6 +156,42 @@ ssh ggh@192.168.160.145 "docker logs sub2api-plus --tail 10"
 - 如果容器已完全停止无法 exec，可用 `docker compose run --rm --entrypoint sh sub2api -c 'cp /app/data/sub2api-server /app/sub2api-plus && chmod +x /app/sub2api-plus'`（需先将二进制放到 `./data/` 挂载目录）
 - 访问地址: `http://192.168.160.145:8081`（映射到容器内 8080 端口）
 
+## Release 发布流程
+
+```bash
+# 1. 提交代码并推送到 GitHub
+git push origin main
+
+# 2. 检查 CI 是否通过（仓库: gghyoo/sub2api-plus）
+gh run list --limit 3 --repo gghyoo/sub2api-plus
+# 如有失败，查看日志修复后重新推送
+gh run view <run-id> --repo gghyoo/sub2api-plus --log-failed
+
+# 3. CI 通过后，更新版本号
+# 编辑 backend/cmd/server/VERSION，如 0.2.2 → 0.2.3
+# 注意：仅在发布 release 时才变更此文件
+
+# 4. 提交版本号并推送
+git add backend/cmd/server/VERSION
+git commit -m "chore: sync VERSION to x.x.x [skip ci]"
+git push origin main
+
+# 5. 创建 tag 并推送（触发 release workflow 构建 Docker 镜像）
+git tag vx.x.x
+git push origin vx.x.x
+
+# 6. 创建 GitHub Release
+gh release create vx.x.x --repo gghyoo/sub2api-plus --title "vx.x.x" --notes "变更说明..."
+
+# 7. （可选）将新版本部署到服务器，参考上方"Deploy to Server"流程
+```
+
+### 注意事项
+
+- `[skip ci]` 避免版本号提交触发额外的 CI 运行
+- tag 推送会触发 `release.yml` workflow，自动构建多架构 Docker 镜像并推送到 GHCR + DockerHub
+- 如果 CI 失败，先修复问题再重新推送，不要跳过 CI 直接发布
+
 ## Local Dev Environment
 
 | Service | Connection |
