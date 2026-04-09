@@ -529,6 +529,7 @@ func TestAPIContracts(t *testing.T) {
 						"identity_patch_prompt": "",
 						"invitation_code_enabled": false,
 						"home_content": "",
+						"models_guide": "",
 					"hide_ccs_import_button": false,
 					"purchase_subscription_enabled": false,
 					"purchase_subscription_url": "",
