@@ -4508,6 +4508,11 @@ export default {
           '自定义首页内容，支持 Markdown/HTML。如果输入的是链接（以 http:// 或 https:// 开头），则会使用该链接作为 iframe 的 src 属性，这允许你设置任意网页作为首页。设置后首页的状态信息将不再显示。',
         homeContentIframeWarning:
           '⚠️ iframe 模式提示：部分网站设置了 X-Frame-Options 或 CSP 安全策略，禁止被嵌入到 iframe 中。如果页面显示空白或报错，请确认目标网站允许被嵌入，或考虑使用 HTML 模式自行构建页面内容。',
+        modelsGuide: '模型指南提示',
+        modelsGuidePlaceholder:
+          '在此输入模型表格下方显示的提示内容，支持 Markdown & HTML。留空则不显示。',
+        modelsGuideHint:
+          '显示在首页模型价格表下方的蓝色提示卡片。可使用 Markdown 或 HTML 编写模型选择建议、使用场景说明等内容。',
         hideCcsImportButton: '隐藏 CCS 导入按钮',
         hideCcsImportButtonHint: '启用后将在 API Keys 页面隐藏"导入 CCS"按钮'
       },

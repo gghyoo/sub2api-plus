@@ -98,18 +98,47 @@
           </tbody>
         </table>
       </div>
-      <div class="border-t border-gray-200 bg-gray-50/50 px-4 py-2 text-center text-xs text-gray-500 dark:border-dark-700 dark:bg-dark-800/50 dark:text-dark-400">
-        {{ t('home.modelsTable.priceUnit') }}
+      <!-- Models Guide Tip -->
+      <div
+        v-if="renderedGuide"
+        class="border-t border-green-100 bg-green-50/50 px-4 py-3 dark:border-green-800/50 dark:bg-green-900/20"
+      >
+        <div class="flex items-start gap-3 p-3">
+          <svg class="mt-0.5 h-5 w-5 flex-shrink-0 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div
+            class="markdown-body prose prose-sm max-w-none text-sm text-green-700 dark:text-green-300 dark:prose-invert"
+            v-html="renderedGuide"
+          ></div>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useAppStore } from '@/stores/app'
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 
 const { t } = useI18n()
+const appStore = useAppStore()
+
+marked.setOptions({
+  breaks: true,
+  gfm: true,
+})
+
+const modelsGuide = computed(() => appStore.cachedPublicSettings?.models_guide || '')
+
+const renderedGuide = computed(() => {
+  if (!modelsGuide.value) return ''
+  const html = marked.parse(modelsGuide.value) as string
+  return DOMPurify.sanitize(html)
+})
 
 interface ModelInfo {
   id: string
