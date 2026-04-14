@@ -2901,7 +2901,16 @@ export default {
         glmLevel: 'Plan Level',
         glmTokenQuota: 'Token Usage',
         glmMcpQuota: 'MCP Usage',
-        glmResetNow: 'Reset now'
+        glmResetNow: 'Reset now',
+        glmResetTime: 'Reset',
+        // MiniMax Coding Plan
+        minimaxCodingPlan: 'MiniMax Coding Plan Usage',
+        minimaxModelQuota: 'Model Quotas',
+        minimax5hWindow: '5h Window',
+        minimaxWeekly: 'Weekly',
+        minimaxRemaining: 'Remaining',
+        minimaxResetTime: 'Reset',
+        minimaxNoModels: 'No model data available'
       },
       usageWindow: {
         statsTitle: '5-Hour Window Usage Statistics',

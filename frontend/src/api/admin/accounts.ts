@@ -257,11 +257,54 @@ export interface GLMUsageResponse {
 }
 
 /**
+ * MiniMax Model Remain entry
+ * NOTE: current_interval_usage_count and current_weekly_usage_count are REMAINING, not used.
+ */
+export interface MiniMaxModelRemain {
+  model_name: string
+  current_interval_total_count: number
+  current_interval_usage_count: number // REMAINING in 5h window
+  start_time: number
+  end_time: number                     // 5h reset time (ms epoch)
+  remains_time: number                 // ms remaining until 5h reset
+  current_weekly_total_count: number
+  current_weekly_usage_count: number   // REMAINING in weekly window
+  weekly_start_time: number
+  weekly_end_time: number              // weekly reset time (ms epoch)
+  weekly_remains_time: number          // ms remaining until weekly reset
+}
+
+/**
+ * MiniMax Usage response
+ */
+export interface MiniMaxUsageResponse {
+  models: MiniMaxModelRemain[]
+}
+
+/**
+ * Unified Coding Plan Usage response (GLM or MiniMax)
+ */
+export interface CodingPlanUsageResponse {
+  platform: 'glm' | 'minimax'
+  glm?: GLMUsageResponse
+  minimax?: MiniMaxUsageResponse
+}
+
+/**
  * Get GLM Coding Plan usage for an account
  * Only applicable for accounts with bigmodel base URL
  */
 export async function getGLMUsage(id: number): Promise<GLMUsageResponse> {
   const { data } = await apiClient.get<GLMUsageResponse>(`/admin/accounts/${id}/glm-usage`)
+  return data
+}
+
+/**
+ * Get Coding Plan usage for an account (supports GLM and MiniMax)
+ * Returns unified response with platform field
+ */
+export async function getCodingPlanUsage(id: number): Promise<CodingPlanUsageResponse> {
+  const { data } = await apiClient.get<CodingPlanUsageResponse>(`/admin/accounts/${id}/coding-plan-usage`)
   return data
 }
 
@@ -682,6 +725,7 @@ export const accountsAPI = {
   refreshCredentials,
   getStats,
   getGLMUsage,
+  getCodingPlanUsage,
   clearError,
   getUsage,
   getTodayStats,

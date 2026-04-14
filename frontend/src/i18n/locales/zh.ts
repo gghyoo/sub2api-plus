@@ -3032,7 +3032,16 @@ export default {
         glmLevel: '套餐等级',
         glmTokenQuota: 'Token 用量',
         glmMcpQuota: 'MCP 用量',
-        glmResetNow: '已重置'
+        glmResetNow: '已重置',
+        glmResetTime: '重置时间',
+        // MiniMax Coding Plan
+        minimaxCodingPlan: 'MiniMax Coding Plan 用量',
+        minimaxModelQuota: '模型配额',
+        minimax5hWindow: '5小时窗口',
+        minimaxWeekly: '每周',
+        minimaxRemaining: '剩余',
+        minimaxResetTime: '重置',
+        minimaxNoModels: '暂无模型数据'
       }
     },
 

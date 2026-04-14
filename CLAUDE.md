@@ -16,7 +16,11 @@ Sub2API is an **AI API Gateway Platform** for subscription quota distribution. I
 All commands run from `backend/` unless noted.
 
 ```bash
-# Run server
+# Run server (with embedded frontend) — 本地开发必须用此方式
+# 注意顺序：必须先编译前端，再启动后端（后端编译时嵌入前端产物）
+cd frontend && pnpm build && cd ../backend && go run -tags embed ./cmd/server/
+
+# Run server (backend only, no frontend)
 cd backend && go run ./cmd/server/
 
 # Unit tests (build tag: unit)
@@ -38,8 +42,7 @@ go generate ./cmd/server
 go generate ./ent && go generate ./cmd/server
 
 # Frontend (must use pnpm, NOT npm)
-cd frontend && pnpm install && pnpm dev   # dev server
-cd frontend && pnpm build                  # production build
+cd frontend && pnpm install && pnpm build   # build for embedding
 
 # Build backend binary
 cd backend && CGO_ENABLED=0 go build -ldflags="-s -w" -trimpath -o bin/server ./cmd/server
@@ -117,44 +120,6 @@ Always use **pnpm**. After changing `package.json`, run `pnpm install` and commi
 - **backend-ci.yml**: unit tests → integration tests → golangci-lint v2.7
 - **security-scan.yml**: govulncheck + gosec + pnpm audit (runs on push + weekly)
 - **release.yml**: triggered on `v*` tags, multi-stage Docker build via GoReleaser, publishes to GHCR + DockerHub
-
-## Deploy to Server (Binary Replacement)
-
-部署服务器: `ggh@192.168.160.145`，容器名: `sub2api-plus`，docker目录: `/home/ggh/dockers/sub2api-plus`
-
-容器内二进制路径为 `/app/sub2api-plus`（由 `docker-entrypoint.sh` 启动），**不是** `/app/server`。
-
-### 步骤
-
-```bash
-# 1. 构建前端
-cd frontend && pnpm build
-
-# 2. 交叉编译 Linux 二进制（嵌入前端）
-cd backend && CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -tags embed -ldflags="-s -w" -trimpath -o bin/server ./cmd/server
-
-# 3. 上传二进制到服务器
-scp backend/bin/server ggh@192.168.160.145:/tmp/sub2api-server
-
-# 4. 确保容器处于运行状态（如果已运行则跳过）
-ssh ggh@192.168.160.145 "cd /home/ggh/dockers/sub2api-plus && docker compose up -d --no-deps sub2api"
-
-# 5. 趁容器还在运行，复制二进制并设置可执行权限
-ssh ggh@192.168.160.145 "docker cp /tmp/sub2api-server sub2api-plus:/app/sub2api-plus && docker exec sub2api-plus chmod +x /app/sub2api-plus"
-
-# 6. 重启容器
-ssh ggh@192.168.160.145 "cd /home/ggh/dockers/sub2api-plus && docker compose restart sub2api"
-
-# 7. 查看日志确认启动成功
-ssh ggh@192.168.160.145 "docker logs sub2api-plus --tail 10"
-```
-
-### 注意事项
-
-- `docker cp` 复制的文件**不会继承**原有文件的执行权限，必须 `docker exec chmod +x`
-- 容器停止后无法 `docker exec`，所以必须先启动容器（即使 crash 循环中也行），再 cp + chmod
-- 如果容器已完全停止无法 exec，可用 `docker compose run --rm --entrypoint sh sub2api -c 'cp /app/data/sub2api-server /app/sub2api-plus && chmod +x /app/sub2api-plus'`（需先将二进制放到 `./data/` 挂载目录）
-- 访问地址: `http://192.168.160.145:8081`（映射到容器内 8080 端口）
 
 ## Release 发布流程
 

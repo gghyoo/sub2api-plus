@@ -38,6 +38,10 @@ type GLMQuotaLimit struct {
 	CurrentValue int64   `json:"currentValue,omitempty"`
 	Remaining    int64   `json:"remaining,omitempty"`
 	NextResetMs  int64   `json:"nextResetTime,omitempty"`
+	UsageDetails []struct {
+		ModelCode string `json:"modelCode"`
+		Usage     int64  `json:"usage"`
+	} `json:"usageDetails,omitempty"`
 }
 
 // GLMUsageResponse combines all monitoring API responses.
@@ -133,7 +137,7 @@ func parseToolUsage(data json.RawMessage, result *GLMUsageResponse) {
 }
 
 // parseQuotaLimit extracts quota limits from the quota/limit API response.
-// Response format: {"limits":[...], "level":"max"}
+// Also merges MCP usageDetails into the tools list if not already present.
 func parseQuotaLimit(data json.RawMessage, result *GLMUsageResponse) {
 	var resp struct {
 		Limits []GLMQuotaLimit `json:"limits"`
@@ -144,6 +148,27 @@ func parseQuotaLimit(data json.RawMessage, result *GLMUsageResponse) {
 	}
 	result.QuotaLimits = resp.Limits
 	result.QuotaLevel = resp.Level
+
+	// Merge MCP usageDetails into tools (e.g. zread may only appear here)
+	existing := make(map[string]bool)
+	for _, t := range result.Tools {
+		existing[t.ToolCode] = true
+	}
+	for _, limit := range resp.Limits {
+		if limit.Type == "TIME_LIMIT" {
+			for idx, detail := range limit.UsageDetails {
+				if !existing[detail.ModelCode] {
+					result.Tools = append(result.Tools, GLMToolSummary{
+						ToolCode:      detail.ModelCode,
+						ToolName:      detail.ModelCode,
+						TotalUsageCount: detail.Usage,
+						SortOrder:     len(result.Tools) + idx + 1,
+					})
+					existing[detail.ModelCode] = true
+				}
+			}
+		}
+	}
 }
 
 // glmGet makes a GET request to the monitoring API and returns the "data" field.
@@ -187,7 +212,85 @@ func formatGLMTime(t time.Time) string {
 
 // IsBigModelBaseURL checks if a base URL points to a ZhiPu/bigmodel endpoint.
 func IsBigModelBaseURL(baseURL string) bool {
-	return strings.Contains(baseURL, "bigmodel")
+	return strings.Contains(strings.ToLower(baseURL), "bigmodel")
+}
+
+// IsMiniMaxBaseURL checks if a base URL points to a MiniMax endpoint.
+func IsMiniMaxBaseURL(baseURL string) bool {
+	return strings.Contains(strings.ToLower(baseURL), "minimax")
+}
+
+// MiniMaxModelRemain represents a model's remaining quota from the MiniMax API.
+// NOTE: current_interval_usage_count and current_weekly_usage_count are REMAINING counts, not used.
+type MiniMaxModelRemain struct {
+	ModelName                     string `json:"model_name"`
+	CurrentIntervalTotalCount     int64  `json:"current_interval_total_count"`     // 5h window total quota
+	CurrentIntervalUsageCount     int64  `json:"current_interval_usage_count"`     // 5h window REMAINING
+	StartTime                     int64  `json:"start_time"`
+	EndTime                       int64  `json:"end_time"`                         // 5h window reset time (ms epoch)
+	RemainsTime                   int64  `json:"remains_time"`                     // ms remaining until 5h reset
+	CurrentWeeklyTotalCount       int64  `json:"current_weekly_total_count"`       // weekly total quota
+	CurrentWeeklyUsageCount       int64  `json:"current_weekly_usage_count"`       // weekly REMAINING
+	WeeklyStartTime               int64  `json:"weekly_start_time"`
+	WeeklyEndTime                 int64  `json:"weekly_end_time"`                  // weekly reset time (ms epoch)
+	WeeklyRemainsTime             int64  `json:"weekly_remains_time"`              // ms remaining until weekly reset
+}
+
+// MiniMaxUsageResponse combines all MiniMax Coding Plan usage data.
+type MiniMaxUsageResponse struct {
+	Models []MiniMaxModelRemain `json:"models"`
+}
+
+// CodingPlanUsageResponse is a unified response for both GLM and MiniMax coding plan usage.
+type CodingPlanUsageResponse struct {
+	Platform string            `json:"platform"` // "glm" or "minimax"
+	GLM      *GLMUsageResponse `json:"glm,omitempty"`
+	MiniMax  *MiniMaxUsageResponse `json:"minimax,omitempty"`
+}
+
+// FetchMiniMaxUsage fetches MiniMax Coding Plan usage from the MiniMax API.
+func FetchMiniMaxUsage(ctx context.Context, apiKey string) (*MiniMaxUsageResponse, error) {
+	client, err := httpclient.GetClient(httpclient.Options{
+		Timeout: 10 * time.Second,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create http client: %w", err)
+	}
+
+	apiURL := "https://www.minimaxi.com/v1/api/openplatform/coding_plan/remains"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body[:min(len(body), 200)]))
+	}
+
+	// API returns {"model_remains": [...]} directly (no nested data field)
+	var apiResp struct {
+		ModelRemains []MiniMaxModelRemain `json:"model_remains"`
+	}
+	if err := json.Unmarshal(body, &apiResp); err != nil {
+		return nil, fmt.Errorf("parse response: %w", err)
+	}
+
+	return &MiniMaxUsageResponse{
+		Models: apiResp.ModelRemains,
+	}, nil
 }
 
 // ExtractBaseDomain extracts scheme://host from a URL string.

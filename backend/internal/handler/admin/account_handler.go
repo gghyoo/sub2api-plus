@@ -961,7 +961,63 @@ func (h *AccountHandler) GetStats(c *gin.Context) {
 	response.Success(c, stats)
 }
 
-// GetGLMUsage handles getting GLM Coding Plan usage for an account
+// GetCodingPlanUsage handles getting Coding Plan usage for an account (GLM or MiniMax)
+// GET /api/v1/admin/accounts/:id/coding-plan-usage
+func (h *AccountHandler) GetCodingPlanUsage(c *gin.Context) {
+	accountID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		response.BadRequest(c, "Invalid account ID")
+		return
+	}
+
+	account, err := h.adminService.GetAccount(c.Request.Context(), accountID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	baseURL := account.GetCredential("base_url")
+	apiKey := account.GetCredential("api_key")
+	if apiKey == "" {
+		response.BadRequest(c, "Account has no API key")
+		return
+	}
+
+	result := &service.CodingPlanUsageResponse{}
+
+	if service.IsBigModelBaseURL(baseURL) {
+		result.Platform = "glm"
+		baseDomain, err := service.ExtractBaseDomain(baseURL)
+		if err != nil {
+			response.BadRequest(c, "Invalid base URL: "+err.Error())
+			return
+		}
+		glmUsage, err := service.FetchGLMUsage(c.Request.Context(), baseDomain, apiKey)
+		if err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+		result.GLM = glmUsage
+		response.Success(c, result)
+		return
+	}
+
+	if service.IsMiniMaxBaseURL(baseURL) {
+		result.Platform = "minimax"
+		minimaxUsage, err := service.FetchMiniMaxUsage(c.Request.Context(), apiKey)
+		if err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+		result.MiniMax = minimaxUsage
+		response.Success(c, result)
+		return
+	}
+
+	response.BadRequest(c, "Account does not support Coding Plan usage query")
+}
+
+// GetGLMUsage handles getting GLM Coding Plan usage for an account (legacy, kept for compatibility)
 // GET /api/v1/admin/accounts/:id/glm-usage
 func (h *AccountHandler) GetGLMUsage(c *gin.Context) {
 	accountID, err := strconv.ParseInt(c.Param("id"), 10, 64)

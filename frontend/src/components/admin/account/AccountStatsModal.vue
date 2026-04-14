@@ -424,7 +424,7 @@
         />
 
         <!-- GLM Coding Plan Usage (shown when account has bigmodel base URL) -->
-        <template v-if="glmUsage || glmLoading">
+        <template v-if="(glmUsage || glmLoading) && (codingPlanPlatform === 'glm' || !codingPlanPlatform)">
           <div class="flex items-center gap-2 border-t border-gray-200 pt-4 dark:border-gray-700">
             <div class="rounded-lg bg-violet-100 p-1.5 dark:bg-violet-900/30">
               <svg class="h-4 w-4 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
@@ -536,8 +536,96 @@
                   </div>
                   <div v-if="limit.currentValue != null && limit.remaining != null" class="mt-0.5 text-xs tabular-nums text-gray-400 dark:text-gray-500">
                     {{ limit.currentValue.toLocaleString() }} / {{ (limit.currentValue + limit.remaining).toLocaleString() }}
-                    <span v-if="limit.nextResetTime" class="ml-1">⟳ {{ formatResetTime(limit.nextResetTime) }}</span>
                   </div>
+                  <div v-if="limit.nextResetTime" class="mt-0.5 text-xs tabular-nums text-gray-400 dark:text-gray-500">
+                    {{ t('admin.accounts.stats.glmResetTime') }}：{{ formatResetTime(limit.nextResetTime) }}
+                    <span class="ml-2">{{ formatResetDate(limit.nextResetTime) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+        </template>
+
+        <!-- MiniMax Coding Plan Usage (shown when account has minimax base URL) -->
+        <template v-if="(minimaxUsage || minimaxLoading) && codingPlanPlatform === 'minimax'">
+          <div class="flex items-center gap-2 border-t border-gray-200 pt-4 dark:border-gray-700">
+            <div class="rounded-lg bg-indigo-100 p-1.5 dark:bg-indigo-900/30">
+              <svg class="h-4 w-4 text-indigo-600 dark:text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+              {{ t('admin.accounts.stats.minimaxCodingPlan') }}
+            </h3>
+          </div>
+
+          <!-- Loading state -->
+          <div v-if="minimaxLoading" class="flex items-center justify-center py-8">
+            <LoadingSpinner />
+          </div>
+
+          <!-- MiniMax data -->
+          <template v-else-if="minimaxUsage">
+            <div class="card p-4">
+              <h4 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
+                {{ t('admin.accounts.stats.minimaxModelQuota') }}
+              </h4>
+              <div class="space-y-4">
+                <div v-for="model in minimaxUsage" :key="model.model_name" class="space-y-2 rounded-lg border border-gray-100 p-3 dark:border-gray-800">
+                  <div class="text-sm font-medium text-gray-900 dark:text-white">{{ model.model_name }}</div>
+
+                  <!-- 5h Window -->
+                  <div v-if="model.current_interval_total_count > 0">
+                    <div class="mb-1 flex items-center justify-between">
+                      <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.stats.minimax5hWindow') }}</span>
+                      <span class="text-xs tabular-nums text-gray-500 dark:text-gray-400">
+                        {{ t('admin.accounts.stats.minimaxRemaining') }}：{{ model.current_interval_usage_count.toLocaleString() }} / {{ model.current_interval_total_count.toLocaleString() }}
+                      </span>
+                    </div>
+                    <div class="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                      <div
+                        class="h-2 rounded-full transition-all"
+                        :class="{
+                          'bg-red-500': (model.current_interval_usage_count / model.current_interval_total_count * 100) < 20,
+                          'bg-amber-500': (model.current_interval_usage_count / model.current_interval_total_count * 100) >= 20 && (model.current_interval_usage_count / model.current_interval_total_count * 100) < 50,
+                          'bg-emerald-500': (model.current_interval_usage_count / model.current_interval_total_count * 100) >= 50
+                        }"
+                        :style="{ width: Math.min((1 - model.current_interval_usage_count / model.current_interval_total_count) * 100, 100) + '%' }"
+                      />
+                    </div>
+                    <div class="mt-0.5 text-xs tabular-nums text-gray-400 dark:text-gray-500">
+                      <span v-if="model.end_time">{{ t('admin.accounts.stats.minimaxResetTime') }}：{{ formatResetDate(model.end_time) }}</span>
+                    </div>
+                  </div>
+
+                  <!-- Weekly -->
+                  <div v-if="model.current_weekly_total_count > 0">
+                    <div class="mb-1 flex items-center justify-between">
+                      <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.stats.minimaxWeekly') }}</span>
+                      <span class="text-xs tabular-nums text-gray-500 dark:text-gray-400">
+                        {{ t('admin.accounts.stats.minimaxRemaining') }}：{{ model.current_weekly_usage_count.toLocaleString() }} / {{ model.current_weekly_total_count.toLocaleString() }}
+                      </span>
+                    </div>
+                    <div class="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                      <div
+                        class="h-2 rounded-full transition-all"
+                        :class="{
+                          'bg-red-500': (model.current_weekly_usage_count / model.current_weekly_total_count * 100) < 20,
+                          'bg-amber-500': (model.current_weekly_usage_count / model.current_weekly_total_count * 100) >= 20 && (model.current_weekly_usage_count / model.current_weekly_total_count * 100) < 50,
+                          'bg-emerald-500': (model.current_weekly_usage_count / model.current_weekly_total_count * 100) >= 50
+                        }"
+                        :style="{ width: Math.min((1 - model.current_weekly_usage_count / model.current_weekly_total_count) * 100, 100) + '%' }"
+                      />
+                    </div>
+                    <div class="mt-0.5 text-xs tabular-nums text-gray-400 dark:text-gray-500">
+                      <span v-if="model.weekly_end_time">{{ t('admin.accounts.stats.minimaxResetTime') }}：{{ formatResetDate(model.weekly_end_time) }}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div v-if="!minimaxUsage.length" class="py-3 text-center text-xs text-gray-400">
+                  {{ t('admin.accounts.stats.minimaxNoModels') }}
                 </div>
               </div>
             </div>
@@ -589,7 +677,7 @@ import ModelDistributionChart from '@/components/charts/ModelDistributionChart.v
 import EndpointDistributionChart from '@/components/charts/EndpointDistributionChart.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { adminAPI } from '@/api/admin'
-import type { GLMUsageResponse } from '@/api/admin/accounts'
+import type { GLMUsageResponse, MiniMaxModelRemain } from '@/api/admin/accounts'
 import type { Account, AccountUsageStatsResponse } from '@/types'
 
 ChartJS.register(
@@ -620,6 +708,13 @@ const stats = ref<AccountUsageStatsResponse | null>(null)
 // GLM usage state
 const glmUsage = ref<GLMUsageResponse | null>(null)
 const glmLoading = ref(false)
+
+// MiniMax usage state
+const minimaxUsage = ref<MiniMaxModelRemain[] | null>(null)
+const minimaxLoading = ref(false)
+
+// Coding plan platform detection
+const codingPlanPlatform = ref<'glm' | 'minimax' | null>(null)
 
 // Dark mode detection
 const isDarkMode = computed(() => {
@@ -773,10 +868,12 @@ watch(
   () => props.show,
   async (newVal) => {
     if (newVal && props.account) {
-      await Promise.allSettled([loadStats(), loadGLMUsage()])
+      await Promise.allSettled([loadStats(), loadCodingPlanUsage()])
     } else {
       stats.value = null
       glmUsage.value = null
+      minimaxUsage.value = null
+      codingPlanPlatform.value = null
     }
   }
 )
@@ -795,17 +892,27 @@ const loadStats = async () => {
   }
 }
 
-const loadGLMUsage = async () => {
+const loadCodingPlanUsage = async () => {
   if (!props.account) return
 
   glmLoading.value = true
+  minimaxLoading.value = true
   try {
-    glmUsage.value = await adminAPI.accounts.getGLMUsage(props.account.id)
+    const result = await adminAPI.accounts.getCodingPlanUsage(props.account.id)
+    codingPlanPlatform.value = result.platform
+    if (result.platform === 'glm' && result.glm) {
+      glmUsage.value = result.glm
+    } else if (result.platform === 'minimax' && result.minimax) {
+      minimaxUsage.value = result.minimax.models
+    }
   } catch {
-    // Not a bigmodel account or API error — silently hide the section
+    // Not a coding plan account or API error — silently hide
     glmUsage.value = null
+    minimaxUsage.value = null
+    codingPlanPlatform.value = null
   } finally {
     glmLoading.value = false
+    minimaxLoading.value = false
   }
 }
 
@@ -854,7 +961,7 @@ const formatDuration = (ms: number): string => {
 
 // GLM quota label: "Token usage (5 Hour)" or "MCP usage (1 Month)"
 const formatQuotaLabel = (limit: { type: string; unit: number; number: number }) => {
-  const unitMap: Record<number, string> = { 1: 'Year', 2: 'Month', 3: 'Week', 4: 'Day', 5: 'Month', 6: 'Week' }
+  const unitMap: Record<number, string> = { 1: 'Year', 2: 'Month', 3: 'Hour', 4: 'Day', 5: 'Month', 6: 'Week' }
   const typeLabel = limit.type === 'TOKENS_LIMIT' ? t('admin.accounts.stats.glmTokenQuota') : t('admin.accounts.stats.glmMcpQuota')
   const unitLabel = unitMap[limit.unit] || `${limit.number}${limit.unit}`
   return `${typeLabel} (${limit.number} ${unitLabel})`
@@ -862,11 +969,13 @@ const formatQuotaLabel = (limit: { type: string; unit: number; number: number })
 
 const formatResetTime = (ms: number): string => {
   const d = new Date(ms)
-  const now = new Date()
   const pad = (n: number) => String(n).padStart(2, '0')
-  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`
-  // If reset is today, show only time; otherwise show full date+time
-  if (d.toDateString() === now.toDateString()) return time
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${time}`
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+const formatResetDate = (ms: number): string => {
+  const d = new Date(ms)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
 </script>
