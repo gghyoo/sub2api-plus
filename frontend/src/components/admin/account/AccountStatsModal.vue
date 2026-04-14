@@ -422,6 +422,127 @@
           :loading="false"
           :title="t('usage.upstreamEndpoint')"
         />
+
+        <!-- GLM Coding Plan Usage (shown when account has bigmodel base URL) -->
+        <template v-if="glmUsage || glmLoading">
+          <div class="flex items-center gap-2 border-t border-gray-200 pt-4 dark:border-gray-700">
+            <div class="rounded-lg bg-violet-100 p-1.5 dark:bg-violet-900/30">
+              <svg class="h-4 w-4 text-violet-600 dark:text-violet-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+              {{ t('admin.accounts.stats.glmCodingPlan') }}
+            </h3>
+          </div>
+
+          <!-- Loading state -->
+          <div v-if="glmLoading" class="flex items-center justify-center py-8">
+            <LoadingSpinner />
+          </div>
+
+          <!-- GLM data -->
+          <template v-else-if="glmUsage">
+            <!-- Summary: total calls & tokens -->
+            <div class="grid grid-cols-2 gap-4">
+              <div class="card border-blue-200 bg-gradient-to-br from-blue-50 to-white p-4 dark:border-blue-800/30 dark:from-blue-900/10 dark:to-dark-700">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('admin.accounts.stats.glmTotalCalls') }}</span>
+                <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ formatNumber(glmUsage.total_model_calls) }}</p>
+                <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('admin.accounts.stats.glm24h') }}</p>
+              </div>
+              <div class="card border-teal-200 bg-gradient-to-br from-teal-50 to-white p-4 dark:border-teal-800/30 dark:from-teal-900/10 dark:to-dark-700">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('admin.accounts.stats.glmTotalTokens') }}</span>
+                <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ formatTokens(glmUsage.total_tokens) }}</p>
+                <p class="text-xs text-gray-400 dark:text-gray-500">
+                  {{ t('admin.accounts.stats.glmLevel') }}: <span class="font-medium text-teal-600 dark:text-teal-400">{{ glmUsage.quota_level || '-' }}</span>
+                </p>
+              </div>
+            </div>
+
+            <!-- Row: Model Usage + Tool Usage -->
+            <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              <!-- Model Usage -->
+              <div class="card p-4">
+                <h4 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
+                  {{ t('admin.accounts.stats.glmModelUsage') }}
+                </h4>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead>
+                      <tr class="border-b border-gray-200 dark:border-gray-700">
+                        <th class="pb-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Model</th>
+                        <th class="pb-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Tokens</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="item in glmUsage.models" :key="item.modelName" class="border-b border-gray-100 last:border-0 dark:border-gray-800">
+                        <td class="py-1.5 text-gray-900 dark:text-gray-100">{{ item.modelName }}</td>
+                        <td class="py-1.5 text-right tabular-nums text-gray-900 dark:text-gray-100">{{ formatTokens(item.totalTokens) }}</td>
+                      </tr>
+                      <tr v-if="!glmUsage.models?.length">
+                        <td colspan="2" class="py-3 text-center text-xs text-gray-400">{{ t('admin.dashboard.noDataAvailable') }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Tool Usage -->
+              <div class="card p-4">
+                <h4 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
+                  {{ t('admin.accounts.stats.glmToolUsage') }}
+                </h4>
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead>
+                      <tr class="border-b border-gray-200 dark:border-gray-700">
+                        <th class="pb-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Tool</th>
+                        <th class="pb-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Count</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="item in glmUsage.tools" :key="item.toolCode" class="border-b border-gray-100 last:border-0 dark:border-gray-800">
+                        <td class="py-1.5 text-gray-900 dark:text-gray-100">{{ item.toolName }}</td>
+                        <td class="py-1.5 text-right tabular-nums text-gray-900 dark:text-gray-100">{{ formatNumber(item.totalUsageCount) }}</td>
+                      </tr>
+                      <tr v-if="!glmUsage.tools?.length">
+                        <td colspan="2" class="py-3 text-center text-xs text-gray-400">{{ t('admin.dashboard.noDataAvailable') }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            <!-- Quota Limits -->
+            <div v-if="glmUsage.quota_limits?.length" class="card p-4">
+              <h4 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
+                {{ t('admin.accounts.stats.glmQuotaLimits') }}
+              </h4>
+              <div class="space-y-3">
+                <div v-for="(limit, idx) in glmUsage.quota_limits" :key="idx">
+                  <div class="mb-1 flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ formatQuotaLabel(limit) }}</span>
+                    <span class="text-xs font-semibold tabular-nums" :class="limit.percentage > 80 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'">
+                      {{ limit.percentage.toFixed(1) }}%
+                    </span>
+                  </div>
+                  <div class="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                    <div
+                      class="h-2 rounded-full transition-all"
+                      :class="limit.percentage > 80 ? 'bg-red-500' : limit.percentage > 50 ? 'bg-amber-500' : 'bg-emerald-500'"
+                      :style="{ width: Math.min(limit.percentage, 100) + '%' }"
+                    />
+                  </div>
+                  <div v-if="limit.currentValue != null && limit.remaining != null" class="mt-0.5 text-xs tabular-nums text-gray-400 dark:text-gray-500">
+                    {{ limit.currentValue.toLocaleString() }} / {{ (limit.currentValue + limit.remaining).toLocaleString() }}
+                    <span v-if="limit.nextResetTime" class="ml-1">⟳ {{ formatResetTime(limit.nextResetTime) }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+        </template>
       </template>
 
       <!-- No Data State -->
@@ -468,6 +589,7 @@ import ModelDistributionChart from '@/components/charts/ModelDistributionChart.v
 import EndpointDistributionChart from '@/components/charts/EndpointDistributionChart.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { adminAPI } from '@/api/admin'
+import type { GLMUsageResponse } from '@/api/admin/accounts'
 import type { Account, AccountUsageStatsResponse } from '@/types'
 
 ChartJS.register(
@@ -494,6 +616,10 @@ const emit = defineEmits<{
 
 const loading = ref(false)
 const stats = ref<AccountUsageStatsResponse | null>(null)
+
+// GLM usage state
+const glmUsage = ref<GLMUsageResponse | null>(null)
+const glmLoading = ref(false)
 
 // Dark mode detection
 const isDarkMode = computed(() => {
@@ -647,9 +773,10 @@ watch(
   () => props.show,
   async (newVal) => {
     if (newVal && props.account) {
-      await loadStats()
+      await Promise.allSettled([loadStats(), loadGLMUsage()])
     } else {
       stats.value = null
+      glmUsage.value = null
     }
   }
 )
@@ -665,6 +792,20 @@ const loadStats = async () => {
     stats.value = null
   } finally {
     loading.value = false
+  }
+}
+
+const loadGLMUsage = async () => {
+  if (!props.account) return
+
+  glmLoading.value = true
+  try {
+    glmUsage.value = await adminAPI.accounts.getGLMUsage(props.account.id)
+  } catch {
+    // Not a bigmodel account or API error — silently hide the section
+    glmUsage.value = null
+  } finally {
+    glmLoading.value = false
   }
 }
 
@@ -709,5 +850,23 @@ const formatDuration = (ms: number): string => {
     return `${(ms / 1000).toFixed(2)}s`
   }
   return `${Math.round(ms)}ms`
+}
+
+// GLM quota label: "Token usage (5 Hour)" or "MCP usage (1 Month)"
+const formatQuotaLabel = (limit: { type: string; unit: number; number: number }) => {
+  const unitMap: Record<number, string> = { 1: 'Year', 2: 'Month', 3: 'Week', 4: 'Day', 5: 'Month', 6: 'Week' }
+  const typeLabel = limit.type === 'TOKENS_LIMIT' ? t('admin.accounts.stats.glmTokenQuota') : t('admin.accounts.stats.glmMcpQuota')
+  const unitLabel = unitMap[limit.unit] || `${limit.number}${limit.unit}`
+  return `${typeLabel} (${limit.number} ${unitLabel})`
+}
+
+const formatResetTime = (ms: number): string => {
+  const d = new Date(ms)
+  const now = new Date()
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const time = `${pad(d.getHours())}:${pad(d.getMinutes())}`
+  // If reset is today, show only time; otherwise show full date+time
+  if (d.toDateString() === now.toDateString()) return time
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${time}`
 }
 </script>

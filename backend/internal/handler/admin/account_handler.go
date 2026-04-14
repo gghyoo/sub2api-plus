@@ -961,6 +961,48 @@ func (h *AccountHandler) GetStats(c *gin.Context) {
 	response.Success(c, stats)
 }
 
+// GetGLMUsage handles getting GLM Coding Plan usage for an account
+// GET /api/v1/admin/accounts/:id/glm-usage
+func (h *AccountHandler) GetGLMUsage(c *gin.Context) {
+	accountID, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		response.BadRequest(c, "Invalid account ID")
+		return
+	}
+
+	account, err := h.adminService.GetAccount(c.Request.Context(), accountID)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	baseURL := account.GetCredential("base_url")
+	if !service.IsBigModelBaseURL(baseURL) {
+		response.BadRequest(c, "Account is not a GLM bigmodel account")
+		return
+	}
+
+	baseDomain, err := service.ExtractBaseDomain(baseURL)
+	if err != nil {
+		response.BadRequest(c, "Invalid base URL: "+err.Error())
+		return
+	}
+
+	apiKey := account.GetCredential("api_key")
+	if apiKey == "" {
+		response.BadRequest(c, "Account has no API key")
+		return
+	}
+
+	result, err := service.FetchGLMUsage(c.Request.Context(), baseDomain, apiKey)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+
+	response.Success(c, result)
+}
+
 // ClearError handles clearing account error
 // POST /api/v1/admin/accounts/:id/clear-error
 func (h *AccountHandler) ClearError(c *gin.Context) {

@@ -2890,7 +2890,18 @@ export default {
         todayTokens: 'Today Tokens',
         todayCost: 'Today Cost',
         usageTrend: '30-Day Cost & Request Trend',
-        noData: 'No usage data available for this account'
+        noData: 'No usage data available for this account',
+        glmCodingPlan: 'GLM Coding Plan Usage',
+        glmModelUsage: 'Model Usage (24h)',
+        glmToolUsage: 'Tool Usage (24h)',
+        glmQuotaLimits: 'Quota Limits',
+        glmTotalCalls: 'Total Calls (24h)',
+        glmTotalTokens: 'Total Tokens (24h)',
+        glm24h: 'Last 24 hours',
+        glmLevel: 'Plan Level',
+        glmTokenQuota: 'Token Usage',
+        glmMcpQuota: 'MCP Usage',
+        glmResetNow: 'Reset now'
       },
       usageWindow: {
         statsTitle: '5-Hour Window Usage Statistics',

@@ -3021,7 +3021,18 @@ export default {
         todayTokens: '今日 Token',
         todayCost: '今日费用',
         usageTrend: '30天费用与请求趋势',
-        noData: '该账号暂无使用数据'
+        noData: '该账号暂无使用数据',
+        glmCodingPlan: 'GLM Coding Plan 用量',
+        glmModelUsage: '模型用量 (24小时)',
+        glmToolUsage: '工具用量 (24小时)',
+        glmQuotaLimits: '配额限制',
+        glmTotalCalls: '总调用 (24小时)',
+        glmTotalTokens: '总 Token (24小时)',
+        glm24h: '近 24 小时',
+        glmLevel: '套餐等级',
+        glmTokenQuota: 'Token 用量',
+        glmMcpQuota: 'MCP 用量',
+        glmResetNow: '已重置'
       }
     },
 

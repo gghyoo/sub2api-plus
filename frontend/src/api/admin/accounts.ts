@@ -212,6 +212,60 @@ export async function getStats(id: number, days: number = 30): Promise<AccountUs
 }
 
 /**
+ * GLM Model Usage entry
+ */
+export interface GLMModelUsage {
+  modelName: string
+  totalTokens: number
+  sortOrder: number
+}
+
+/**
+ * GLM Tool Usage entry
+ */
+export interface GLMToolUsage {
+  toolCode: string
+  toolName: string
+  totalUsageCount: number
+  sortOrder: number
+}
+
+/**
+ * GLM Quota Limit entry
+ */
+export interface GLMQuotaLimit {
+  type: string
+  unit: number
+  number: number
+  percentage: number
+  usage?: number
+  currentValue?: number
+  remaining?: number
+  nextResetTime?: number
+}
+
+/**
+ * GLM Usage response combining all monitoring data
+ */
+export interface GLMUsageResponse {
+  total_model_calls: number
+  total_tokens: number
+  models: GLMModelUsage[]
+  tools: GLMToolUsage[]
+  quota_level: string
+  quota_limits: GLMQuotaLimit[]
+}
+
+/**
+ * Get GLM Coding Plan usage for an account
+ * Only applicable for accounts with bigmodel base URL
+ */
+export async function getGLMUsage(id: number): Promise<GLMUsageResponse> {
+  const { data } = await apiClient.get<GLMUsageResponse>(`/admin/accounts/${id}/glm-usage`)
+  return data
+}
+
+/**
  * Clear account error
  * @param id - Account ID
  * @returns Updated account
@@ -627,6 +681,7 @@ export const accountsAPI = {
   testAccount,
   refreshCredentials,
   getStats,
+  getGLMUsage,
   clearError,
   getUsage,
   getTodayStats,
