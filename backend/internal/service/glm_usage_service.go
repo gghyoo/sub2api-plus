@@ -22,10 +22,10 @@ type GLMModelSummary struct {
 
 // GLMToolSummary represents a tool's total usage from the monitoring API.
 type GLMToolSummary struct {
-	ToolCode      string `json:"toolCode"`
-	ToolName      string `json:"toolName"`
-	TotalUsageCount int64 `json:"totalUsageCount"`
-	SortOrder     int    `json:"sortOrder"`
+	ToolCode        string `json:"toolCode"`
+	ToolName        string `json:"toolName"`
+	TotalUsageCount int64  `json:"totalUsageCount"`
+	SortOrder       int    `json:"sortOrder"`
 }
 
 // GLMQuotaLimit represents a quota limit entry from the monitoring API.
@@ -159,10 +159,10 @@ func parseQuotaLimit(data json.RawMessage, result *GLMUsageResponse) {
 			for idx, detail := range limit.UsageDetails {
 				if !existing[detail.ModelCode] {
 					result.Tools = append(result.Tools, GLMToolSummary{
-						ToolCode:      detail.ModelCode,
-						ToolName:      detail.ModelCode,
+						ToolCode:        detail.ModelCode,
+						ToolName:        detail.ModelCode,
 						TotalUsageCount: detail.Usage,
-						SortOrder:     len(result.Tools) + idx + 1,
+						SortOrder:       len(result.Tools) + idx + 1,
 					})
 					existing[detail.ModelCode] = true
 				}
@@ -185,7 +185,7 @@ func glmGet(client *http.Client, ctx context.Context, apiURL, apiKey string) (js
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
@@ -223,17 +223,17 @@ func IsMiniMaxBaseURL(baseURL string) bool {
 // MiniMaxModelRemain represents a model's remaining quota from the MiniMax API.
 // NOTE: current_interval_usage_count and current_weekly_usage_count are REMAINING counts, not used.
 type MiniMaxModelRemain struct {
-	ModelName                     string `json:"model_name"`
-	CurrentIntervalTotalCount     int64  `json:"current_interval_total_count"`     // 5h window total quota
-	CurrentIntervalUsageCount     int64  `json:"current_interval_usage_count"`     // 5h window REMAINING
-	StartTime                     int64  `json:"start_time"`
-	EndTime                       int64  `json:"end_time"`                         // 5h window reset time (ms epoch)
-	RemainsTime                   int64  `json:"remains_time"`                     // ms remaining until 5h reset
-	CurrentWeeklyTotalCount       int64  `json:"current_weekly_total_count"`       // weekly total quota
-	CurrentWeeklyUsageCount       int64  `json:"current_weekly_usage_count"`       // weekly REMAINING
-	WeeklyStartTime               int64  `json:"weekly_start_time"`
-	WeeklyEndTime                 int64  `json:"weekly_end_time"`                  // weekly reset time (ms epoch)
-	WeeklyRemainsTime             int64  `json:"weekly_remains_time"`              // ms remaining until weekly reset
+	ModelName                 string `json:"model_name"`
+	CurrentIntervalTotalCount int64  `json:"current_interval_total_count"` // 5h window total quota
+	CurrentIntervalUsageCount int64  `json:"current_interval_usage_count"` // 5h window REMAINING
+	StartTime                 int64  `json:"start_time"`
+	EndTime                   int64  `json:"end_time"`                   // 5h window reset time (ms epoch)
+	RemainsTime               int64  `json:"remains_time"`               // ms remaining until 5h reset
+	CurrentWeeklyTotalCount   int64  `json:"current_weekly_total_count"` // weekly total quota
+	CurrentWeeklyUsageCount   int64  `json:"current_weekly_usage_count"` // weekly REMAINING
+	WeeklyStartTime           int64  `json:"weekly_start_time"`
+	WeeklyEndTime             int64  `json:"weekly_end_time"`     // weekly reset time (ms epoch)
+	WeeklyRemainsTime         int64  `json:"weekly_remains_time"` // ms remaining until weekly reset
 }
 
 // MiniMaxUsageResponse combines all MiniMax Coding Plan usage data.
@@ -243,8 +243,8 @@ type MiniMaxUsageResponse struct {
 
 // CodingPlanUsageResponse is a unified response for both GLM and MiniMax coding plan usage.
 type CodingPlanUsageResponse struct {
-	Platform string            `json:"platform"` // "glm" or "minimax"
-	GLM      *GLMUsageResponse `json:"glm,omitempty"`
+	Platform string                `json:"platform"` // "glm" or "minimax"
+	GLM      *GLMUsageResponse     `json:"glm,omitempty"`
 	MiniMax  *MiniMaxUsageResponse `json:"minimax,omitempty"`
 }
 
@@ -269,7 +269,7 @@ func FetchMiniMaxUsage(ctx context.Context, apiKey string) (*MiniMaxUsageRespons
 	if err != nil {
 		return nil, err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
