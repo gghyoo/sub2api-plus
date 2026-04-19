@@ -255,9 +255,9 @@ type KimiWindow struct {
 
 // KimiDetail represents the usage detail for a window.
 type KimiDetail struct {
-	Limit      string `json:"limit"`
-	Remaining  string `json:"remaining"`
-	ResetTime  string `json:"resetTime"`
+	Limit     string `json:"limit"`
+	Remaining string `json:"remaining"`
+	ResetTime string `json:"resetTime"`
 }
 
 // KimiLimit represents a single limit entry from the Kimi usage API.
@@ -269,9 +269,9 @@ type KimiLimit struct {
 // KimiUsageResponse represents the response from Kimi Coding Plan usage API.
 type KimiUsageResponse struct {
 	Usage struct {
-		Limit      string `json:"limit"`
-		Remaining  string `json:"remaining"`
-		ResetTime  string `json:"resetTime"`
+		Limit     string `json:"limit"`
+		Remaining string `json:"remaining"`
+		ResetTime string `json:"resetTime"`
 	} `json:"usage"`
 	Limits []KimiLimit `json:"limits"`
 }
