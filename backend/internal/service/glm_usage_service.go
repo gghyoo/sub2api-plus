@@ -220,6 +220,12 @@ func IsMiniMaxBaseURL(baseURL string) bool {
 	return strings.Contains(strings.ToLower(baseURL), "minimax")
 }
 
+// IsKimiBaseURL checks if a base URL points to a Kimi endpoint.
+func IsKimiBaseURL(baseURL string) bool {
+	lower := strings.ToLower(baseURL)
+	return strings.Contains(lower, "kimi.com") || strings.Contains(lower, "moonshot")
+}
+
 // MiniMaxModelRemain represents a model's remaining quota from the MiniMax API.
 // NOTE: current_interval_usage_count and current_weekly_usage_count are REMAINING counts, not used.
 type MiniMaxModelRemain struct {
@@ -241,11 +247,41 @@ type MiniMaxUsageResponse struct {
 	Models []MiniMaxModelRemain `json:"models"`
 }
 
-// CodingPlanUsageResponse is a unified response for both GLM and MiniMax coding plan usage.
+// KimiWindow represents a rate-limit window definition.
+type KimiWindow struct {
+	Duration int    `json:"duration"`
+	TimeUnit string `json:"timeUnit"`
+}
+
+// KimiDetail represents the usage detail for a window.
+type KimiDetail struct {
+	Limit      string `json:"limit"`
+	Remaining  string `json:"remaining"`
+	ResetTime  string `json:"resetTime"`
+}
+
+// KimiLimit represents a single limit entry from the Kimi usage API.
+type KimiLimit struct {
+	Window KimiWindow `json:"window"`
+	Detail KimiDetail `json:"detail"`
+}
+
+// KimiUsageResponse represents the response from Kimi Coding Plan usage API.
+type KimiUsageResponse struct {
+	Usage struct {
+		Limit      string `json:"limit"`
+		Remaining  string `json:"remaining"`
+		ResetTime  string `json:"resetTime"`
+	} `json:"usage"`
+	Limits []KimiLimit `json:"limits"`
+}
+
+// CodingPlanUsageResponse is a unified response for GLM, MiniMax, and Kimi coding plan usage.
 type CodingPlanUsageResponse struct {
-	Platform string                `json:"platform"` // "glm" or "minimax"
+	Platform string                `json:"platform"` // "glm", "minimax", or "kimi"
 	GLM      *GLMUsageResponse     `json:"glm,omitempty"`
 	MiniMax  *MiniMaxUsageResponse `json:"minimax,omitempty"`
+	Kimi     *KimiUsageResponse    `json:"kimi,omitempty"`
 }
 
 // FetchMiniMaxUsage fetches MiniMax Coding Plan usage from the MiniMax API.
@@ -291,6 +327,46 @@ func FetchMiniMaxUsage(ctx context.Context, apiKey string) (*MiniMaxUsageRespons
 	return &MiniMaxUsageResponse{
 		Models: apiResp.ModelRemains,
 	}, nil
+}
+
+// FetchKimiUsage fetches Kimi Coding Plan usage from the Kimi API.
+func FetchKimiUsage(ctx context.Context, apiKey string) (*KimiUsageResponse, error) {
+	client, err := httpclient.GetClient(httpclient.Options{
+		Timeout: 10 * time.Second,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("create http client: %w", err)
+	}
+
+	apiURL := "https://api.kimi.com/coding/v1/usages"
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, apiURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+apiKey)
+	req.Header.Set("Accept", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("read response: %w", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("HTTP %d: %s", resp.StatusCode, string(body[:min(len(body), 200)]))
+	}
+
+	var result KimiUsageResponse
+	if err := json.Unmarshal(body, &result); err != nil {
+		return nil, fmt.Errorf("parse response: %w", err)
+	}
+
+	return &result, nil
 }
 
 // ExtractBaseDomain extracts scheme://host from a URL string.

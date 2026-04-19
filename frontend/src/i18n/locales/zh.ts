@@ -3042,7 +3042,14 @@ export default {
         minimaxWeekly: '每周',
         minimaxRemaining: '剩余',
         minimaxResetTime: '重置',
-        minimaxNoModels: '暂无模型数据'
+        minimaxNoModels: '暂无模型数据',
+        // Kimi Coding Plan
+        kimiCodingPlan: 'Kimi Coding Plan 用量',
+        kimiTotalLimit: '总配额',
+        kimiRemaining: '剩余',
+        kimiQuota: 'Coding Plan 配额',
+        kimiResetTime: '重置时间',
+        kimiWindowLimits: '窗口限制'
       }
     },
 

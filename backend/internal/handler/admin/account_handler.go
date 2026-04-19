@@ -1014,6 +1014,18 @@ func (h *AccountHandler) GetCodingPlanUsage(c *gin.Context) {
 		return
 	}
 
+	if service.IsKimiBaseURL(baseURL) {
+		result.Platform = "kimi"
+		kimiUsage, err := service.FetchKimiUsage(c.Request.Context(), apiKey)
+		if err != nil {
+			response.ErrorFrom(c, err)
+			return
+		}
+		result.Kimi = kimiUsage
+		response.Success(c, result)
+		return
+	}
+
 	response.BadRequest(c, "Account does not support Coding Plan usage query")
 }
 

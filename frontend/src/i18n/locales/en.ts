@@ -2911,7 +2911,14 @@ export default {
         minimaxWeekly: 'Weekly',
         minimaxRemaining: 'Remaining',
         minimaxResetTime: 'Reset',
-        minimaxNoModels: 'No model data available'
+        minimaxNoModels: 'No model data available',
+        // Kimi Coding Plan
+        kimiCodingPlan: 'Kimi Coding Plan Usage',
+        kimiTotalLimit: 'Total Limit',
+        kimiRemaining: 'Remaining',
+        kimiQuota: 'Coding Plan Quota',
+        kimiResetTime: 'Reset Time',
+        kimiWindowLimits: 'Window Limits'
       },
       usageWindow: {
         statsTitle: '5-Hour Window Usage Statistics',

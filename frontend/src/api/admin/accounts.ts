@@ -282,12 +282,50 @@ export interface MiniMaxUsageResponse {
 }
 
 /**
- * Unified Coding Plan Usage response (GLM or MiniMax)
+ * Kimi Window definition
+ */
+export interface KimiWindow {
+  duration: number
+  timeUnit: string
+}
+
+/**
+ * Kimi Usage Detail
+ */
+export interface KimiDetail {
+  limit: string
+  remaining: string
+  resetTime: string
+}
+
+/**
+ * Kimi Limit entry
+ */
+export interface KimiLimit {
+  window: KimiWindow
+  detail: KimiDetail
+}
+
+/**
+ * Kimi Usage response
+ */
+export interface KimiUsageResponse {
+  usage: {
+    limit: string
+    remaining: string
+    resetTime: string
+  }
+  limits: KimiLimit[]
+}
+
+/**
+ * Unified Coding Plan Usage response (GLM, MiniMax, or Kimi)
  */
 export interface CodingPlanUsageResponse {
-  platform: 'glm' | 'minimax'
+  platform: 'glm' | 'minimax' | 'kimi'
   glm?: GLMUsageResponse
   minimax?: MiniMaxUsageResponse
+  kimi?: KimiUsageResponse
 }
 
 /**

@@ -631,6 +631,71 @@
             </div>
           </template>
         </template>
+
+        <!-- Kimi Coding Plan Usage (shown when account has kimi base URL) -->
+        <template v-if="(kimiUsage || kimiLoading) && codingPlanPlatform === 'kimi'">
+          <div class="flex items-center gap-2 border-t border-gray-200 pt-4 dark:border-gray-700">
+            <div class="rounded-lg bg-rose-100 p-1.5 dark:bg-rose-900/30">
+              <svg class="h-4 w-4 text-rose-600 dark:text-rose-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+            </div>
+            <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+              {{ t('admin.accounts.stats.kimiCodingPlan') }}
+            </h3>
+          </div>
+
+          <!-- Loading state -->
+          <div v-if="kimiLoading" class="flex items-center justify-center py-8">
+            <LoadingSpinner />
+          </div>
+
+          <!-- Kimi data -->
+          <template v-else-if="kimiUsage">
+            <!-- Summary: total limit & remaining -->
+            <div class="grid grid-cols-2 gap-4">
+              <div class="card border-rose-200 bg-gradient-to-br from-rose-50 to-white p-4 dark:border-rose-800/30 dark:from-rose-900/10 dark:to-dark-700">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('admin.accounts.stats.kimiTotalLimit') }}</span>
+                <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ formatNumber(parseInt(kimiUsage.usage.limit || '0', 10)) }}</p>
+                <p class="text-xs text-gray-400 dark:text-gray-500">{{ t('admin.accounts.stats.kimiQuota') }}</p>
+              </div>
+              <div class="card border-emerald-200 bg-gradient-to-br from-emerald-50 to-white p-4 dark:border-emerald-800/30 dark:from-emerald-900/10 dark:to-dark-700">
+                <span class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('admin.accounts.stats.kimiRemaining') }}</span>
+                <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ formatNumber(parseInt(kimiUsage.usage.remaining || '0', 10)) }}</p>
+                <p class="text-xs text-gray-400 dark:text-gray-500">
+                  {{ t('admin.accounts.stats.kimiResetTime') }}: <span class="font-medium text-emerald-600 dark:text-emerald-400">{{ formatResetDate(new Date(kimiUsage.usage.resetTime).getTime()) }}</span>
+                </p>
+              </div>
+            </div>
+
+            <!-- Window Limits -->
+            <div v-if="kimiUsage.limits?.length" class="card p-4">
+              <h4 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">
+                {{ t('admin.accounts.stats.kimiWindowLimits') }}
+              </h4>
+              <div class="space-y-3">
+                <div v-for="(limit, idx) in kimiUsage.limits" :key="idx">
+                  <div class="mb-1 flex items-center justify-between">
+                    <span class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ formatKimiWindowLabel(limit) }}</span>
+                    <span class="text-xs tabular-nums text-gray-500 dark:text-gray-400">
+                      {{ t('admin.accounts.stats.kimiRemaining') }}: {{ formatNumber(parseInt(limit.detail.remaining || '0', 10)) }} / {{ formatNumber(parseInt(limit.detail.limit || '0', 10)) }}
+                    </span>
+                  </div>
+                  <div class="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                    <div
+                      class="h-2 rounded-full transition-all"
+                      :class="getKimiBarColor(limit)"
+                      :style="{ width: Math.min(kimiUtilization(limit), 100) + '%' }"
+                    />
+                  </div>
+                  <div v-if="limit.detail.resetTime" class="mt-0.5 text-xs tabular-nums text-gray-400 dark:text-gray-500">
+                    {{ t('admin.accounts.stats.kimiResetTime') }}: {{ formatResetDate(new Date(limit.detail.resetTime).getTime()) }}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </template>
+        </template>
       </template>
 
       <!-- No Data State -->
@@ -677,7 +742,7 @@ import ModelDistributionChart from '@/components/charts/ModelDistributionChart.v
 import EndpointDistributionChart from '@/components/charts/EndpointDistributionChart.vue'
 import Icon from '@/components/icons/Icon.vue'
 import { adminAPI } from '@/api/admin'
-import type { GLMUsageResponse, MiniMaxModelRemain } from '@/api/admin/accounts'
+import type { GLMUsageResponse, MiniMaxModelRemain, KimiUsageResponse } from '@/api/admin/accounts'
 import type { Account, AccountUsageStatsResponse } from '@/types'
 
 ChartJS.register(
@@ -714,7 +779,11 @@ const minimaxUsage = ref<MiniMaxModelRemain[] | null>(null)
 const minimaxLoading = ref(false)
 
 // Coding plan platform detection
-const codingPlanPlatform = ref<'glm' | 'minimax' | null>(null)
+const codingPlanPlatform = ref<'glm' | 'minimax' | 'kimi' | null>(null)
+
+// Kimi usage state
+const kimiUsage = ref<KimiUsageResponse | null>(null)
+const kimiLoading = ref(false)
 
 // Dark mode detection
 const isDarkMode = computed(() => {
@@ -873,6 +942,7 @@ watch(
       stats.value = null
       glmUsage.value = null
       minimaxUsage.value = null
+      kimiUsage.value = null
       codingPlanPlatform.value = null
     }
   }
@@ -897,6 +967,7 @@ const loadCodingPlanUsage = async () => {
 
   glmLoading.value = true
   minimaxLoading.value = true
+  kimiLoading.value = true
   try {
     const result = await adminAPI.accounts.getCodingPlanUsage(props.account.id)
     codingPlanPlatform.value = result.platform
@@ -904,15 +975,19 @@ const loadCodingPlanUsage = async () => {
       glmUsage.value = result.glm
     } else if (result.platform === 'minimax' && result.minimax) {
       minimaxUsage.value = result.minimax.models
+    } else if (result.platform === 'kimi' && result.kimi) {
+      kimiUsage.value = result.kimi
     }
   } catch {
     // Not a coding plan account or API error — silently hide
     glmUsage.value = null
     minimaxUsage.value = null
+    kimiUsage.value = null
     codingPlanPlatform.value = null
   } finally {
     glmLoading.value = false
     minimaxLoading.value = false
+    kimiLoading.value = false
   }
 }
 
@@ -971,6 +1046,36 @@ const formatResetTime = (ms: number): string => {
   const d = new Date(ms)
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+// Kimi helpers
+const formatKimiWindowLabel = (limit: { window: { duration: number; timeUnit: string } }) => {
+  const unitMap: Record<string, string> = {
+    'TIME_UNIT_MINUTE': 'min',
+    'TIME_UNIT_SECOND': 's',
+    'TIME_UNIT_HOUR': 'h',
+    'TIME_UNIT_DAY': 'd'
+  }
+  const unit = unitMap[limit.window.timeUnit] || limit.window.timeUnit
+  return `${limit.window.duration}${unit} window`
+}
+
+const kimiUtilization = (limit: { detail: { limit: string; remaining: string } }) => {
+  const total = parseInt(limit.detail.limit, 10) || 0
+  const remaining = parseInt(limit.detail.remaining, 10) || 0
+  if (total <= 0) return 0
+  const used = total - remaining
+  return (used / total) * 100
+}
+
+const getKimiBarColor = (limit: { detail: { limit: string; remaining: string } }) => {
+  const total = parseInt(limit.detail.limit, 10) || 0
+  const remaining = parseInt(limit.detail.remaining, 10) || 0
+  if (total <= 0) return 'bg-gray-400'
+  const pct = (remaining / total) * 100
+  if (pct < 20) return 'bg-red-500'
+  if (pct < 50) return 'bg-amber-500'
+  return 'bg-emerald-500'
 }
 
 const formatResetDate = (ms: number): string => {

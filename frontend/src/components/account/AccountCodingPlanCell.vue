@@ -30,15 +30,16 @@
 import { computed, onMounted, ref } from 'vue'
 import type { Account } from '@/types'
 import { adminAPI } from '@/api/admin'
-import type { GLMQuotaLimit, MiniMaxModelRemain } from '@/api/admin/accounts'
+import type { GLMQuotaLimit, MiniMaxModelRemain, KimiLimit } from '@/api/admin/accounts'
 import UsageProgressBar from './UsageProgressBar.vue'
 
 const props = defineProps<{ account: Account }>()
 
-const platform = ref<'glm' | 'minimax' | null>(null)
+const platform = ref<'glm' | 'minimax' | 'kimi' | null>(null)
 const loading = ref(false)
 const glmLimits = ref<GLMQuotaLimit[]>([])
 const minimaxModel = ref<MiniMaxModelRemain | null>(null)
+const kimiLimits = ref<KimiLimit[]>([])
 
 const unitLabels: Record<number, string> = { 1: 'Y', 2: 'M', 3: 'h', 4: 'D', 5: 'M', 6: 'W' }
 
@@ -90,6 +91,22 @@ const bars = computed<Bar[]>(() => {
     return result
   }
 
+  if (platform.value === 'kimi' && kimiLimits.value.length > 0) {
+    return kimiLimits.value.map((limit, i) => {
+      const total = parseInt(limit.detail.limit, 10) || 0
+      const remaining = parseInt(limit.detail.remaining, 10) || 0
+      const used = total - remaining
+      const duration = limit.window.duration
+      const unit = limit.window.timeUnit === 'TIME_UNIT_MINUTE' ? 'm' : 's'
+      return {
+        label: `${duration}${unit}`,
+        utilization: total > 0 ? (used / total) * 100 : 0,
+        resetsAt: limit.detail.resetTime || null,
+        color: colors[i % colors.length],
+      }
+    })
+  }
+
   return []
 })
 
@@ -103,6 +120,8 @@ onMounted(async () => {
       glmLimits.value = result.glm.quota_limits ?? []
     } else if (result.platform === 'minimax' && result.minimax) {
       minimaxModel.value = (result.minimax.models ?? []).find(m => /^MiniMax-M/i.test(m.model_name)) ?? null
+    } else if (result.platform === 'kimi' && result.kimi) {
+      kimiLimits.value = result.kimi.limits ?? []
     }
   } catch {
     // Not a coding plan account or API error
