@@ -270,6 +270,7 @@ type KimiLimit struct {
 type KimiUsageResponse struct {
 	Usage struct {
 		Limit     string `json:"limit"`
+		Used      string `json:"used"`
 		Remaining string `json:"remaining"`
 		ResetTime string `json:"resetTime"`
 	} `json:"usage"`

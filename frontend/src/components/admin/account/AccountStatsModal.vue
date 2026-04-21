@@ -578,7 +578,7 @@
                   <!-- 5h Window -->
                   <div v-if="model.current_interval_total_count > 0">
                     <div class="mb-1 flex items-center justify-between">
-                      <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.stats.minimax5hWindow') }}</span>
+                      <span class="text-xs font-medium text-gray-700 dark:text-gray-300">5H</span>
                       <span class="text-xs tabular-nums text-gray-500 dark:text-gray-400">
                         {{ t('admin.accounts.stats.minimaxRemaining') }}：{{ model.current_interval_usage_count.toLocaleString() }} / {{ model.current_interval_total_count.toLocaleString() }}
                       </span>
@@ -602,7 +602,7 @@
                   <!-- Weekly -->
                   <div v-if="model.current_weekly_total_count > 0">
                     <div class="mb-1 flex items-center justify-between">
-                      <span class="text-xs text-gray-500 dark:text-gray-400">{{ t('admin.accounts.stats.minimaxWeekly') }}</span>
+                      <span class="text-xs font-medium text-gray-700 dark:text-gray-300">1W</span>
                       <span class="text-xs tabular-nums text-gray-500 dark:text-gray-400">
                         {{ t('admin.accounts.stats.minimaxRemaining') }}：{{ model.current_weekly_usage_count.toLocaleString() }} / {{ model.current_weekly_total_count.toLocaleString() }}
                       </span>
@@ -674,24 +674,93 @@
                 {{ t('admin.accounts.stats.kimiWindowLimits') }}
               </h4>
               <div class="space-y-3">
-                <div v-for="(limit, idx) in kimiUsage.limits" :key="idx">
-                  <div class="mb-1 flex items-center justify-between">
-                    <span class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ formatKimiWindowLabel(limit) }}</span>
-                    <span class="text-xs tabular-nums text-gray-500 dark:text-gray-400">
-                      {{ t('admin.accounts.stats.kimiRemaining') }}: {{ formatNumber(parseInt(limit.detail.remaining || '0', 10)) }} / {{ formatNumber(parseInt(limit.detail.limit || '0', 10)) }}
-                    </span>
+                <!-- 5H Window -->
+                <template v-for="(limit, idx) in kimiUsage.limits" :key="`5h-${idx}`">
+                  <div v-if="isKimi5hWindow(limit)">
+                    <div class="mb-1 flex items-center justify-between">
+                      <span class="text-xs font-medium text-gray-700 dark:text-gray-300">5H</span>
+                      <span class="text-xs tabular-nums text-gray-500 dark:text-gray-400">
+                        {{ t('admin.accounts.stats.kimiRemaining') }}: {{ formatNumber(parseInt(limit.detail.remaining || '0', 10)) }} / {{ formatNumber(parseInt(limit.detail.limit || '0', 10)) }}
+                      </span>
+                    </div>
+                    <div class="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                      <div
+                        class="h-2 rounded-full transition-all"
+                        :class="getKimiBarColor(limit)"
+                        :style="{ width: Math.min(kimiUtilization(limit), 100) + '%' }"
+                      />
+                    </div>
+                    <div v-if="limit.detail.resetTime" class="mt-0.5 text-xs tabular-nums text-gray-400 dark:text-gray-500">
+                      {{ t('admin.accounts.stats.kimiResetTime') }}: {{ formatResetDate(new Date(limit.detail.resetTime).getTime()) }}
+                    </div>
                   </div>
-                  <div class="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
-                    <div
-                      class="h-2 rounded-full transition-all"
-                      :class="getKimiBarColor(limit)"
-                      :style="{ width: Math.min(kimiUtilization(limit), 100) + '%' }"
-                    />
+                </template>
+
+                <!-- Weekly Window -->
+                <template v-for="(limit, idx) in kimiUsage.limits" :key="`weekly-${idx}`">
+                  <div v-if="isKimiWeeklyWindow(limit)">
+                    <div class="mb-1 flex items-center justify-between">
+                      <span class="text-xs font-medium text-gray-700 dark:text-gray-300">1W</span>
+                      <span class="text-xs tabular-nums text-gray-500 dark:text-gray-400">
+                        {{ t('admin.accounts.stats.kimiRemaining') }}: {{ formatNumber(parseInt(limit.detail.remaining || '0', 10)) }} / {{ formatNumber(parseInt(limit.detail.limit || '0', 10)) }}
+                      </span>
+                    </div>
+                    <div class="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                      <div
+                        class="h-2 rounded-full transition-all"
+                        :class="getKimiBarColor(limit)"
+                        :style="{ width: Math.min(kimiUtilization(limit), 100) + '%' }"
+                      />
+                    </div>
+                    <div v-if="limit.detail.resetTime" class="mt-0.5 text-xs tabular-nums text-gray-400 dark:text-gray-500">
+                      {{ t('admin.accounts.stats.kimiResetTime') }}: {{ formatResetDate(new Date(limit.detail.resetTime).getTime()) }}
+                    </div>
                   </div>
-                  <div v-if="limit.detail.resetTime" class="mt-0.5 text-xs tabular-nums text-gray-400 dark:text-gray-500">
-                    {{ t('admin.accounts.stats.kimiResetTime') }}: {{ formatResetDate(new Date(limit.detail.resetTime).getTime()) }}
+                </template>
+
+                <!-- Monthly Window -->
+                <template v-for="(limit, idx) in kimiUsage.limits" :key="`monthly-${idx}`">
+                  <div v-if="isKimiMonthlyWindow(limit)">
+                    <div class="mb-1 flex items-center justify-between">
+                      <span class="text-xs font-medium text-gray-700 dark:text-gray-300">1M</span>
+                      <span class="text-xs tabular-nums text-gray-500 dark:text-gray-400">
+                        {{ t('admin.accounts.stats.kimiRemaining') }}: {{ formatNumber(parseInt(limit.detail.remaining || '0', 10)) }} / {{ formatNumber(parseInt(limit.detail.limit || '0', 10)) }}
+                      </span>
+                    </div>
+                    <div class="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                      <div
+                        class="h-2 rounded-full transition-all"
+                        :class="getKimiBarColor(limit)"
+                        :style="{ width: Math.min(kimiUtilization(limit), 100) + '%' }"
+                      />
+                    </div>
+                    <div v-if="limit.detail.resetTime" class="mt-0.5 text-xs tabular-nums text-gray-400 dark:text-gray-500">
+                      {{ t('admin.accounts.stats.kimiResetTime') }}: {{ formatResetDate(new Date(limit.detail.resetTime).getTime()) }}
+                    </div>
                   </div>
-                </div>
+                </template>
+
+                <!-- Other Windows -->
+                <template v-for="(limit, idx) in kimiUsage.limits" :key="`other-${idx}`">
+                  <div v-if="!isKimi5hWindow(limit) && !isKimiWeeklyWindow(limit) && !isKimiMonthlyWindow(limit)">
+                    <div class="mb-1 flex items-center justify-between">
+                      <span class="text-xs font-medium text-gray-700 dark:text-gray-300">{{ formatKimiWindowLabel(limit) }}</span>
+                      <span class="text-xs tabular-nums text-gray-500 dark:text-gray-400">
+                        {{ t('admin.accounts.stats.kimiRemaining') }}: {{ formatNumber(parseInt(limit.detail.remaining || '0', 10)) }} / {{ formatNumber(parseInt(limit.detail.limit || '0', 10)) }}
+                      </span>
+                    </div>
+                    <div class="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
+                      <div
+                        class="h-2 rounded-full transition-all"
+                        :class="getKimiBarColor(limit)"
+                        :style="{ width: Math.min(kimiUtilization(limit), 100) + '%' }"
+                      />
+                    </div>
+                    <div v-if="limit.detail.resetTime" class="mt-0.5 text-xs tabular-nums text-gray-400 dark:text-gray-500">
+                      {{ t('admin.accounts.stats.kimiResetTime') }}: {{ formatResetDate(new Date(limit.detail.resetTime).getTime()) }}
+                    </div>
+                  </div>
+                </template>
               </div>
             </div>
           </template>
@@ -1034,12 +1103,12 @@ const formatDuration = (ms: number): string => {
   return `${Math.round(ms)}ms`
 }
 
-// GLM quota label: "Token usage (5 Hour)" or "MCP usage (1 Month)"
+// GLM quota label: "Token usage (5H)" or "MCP usage (1M)"
 const formatQuotaLabel = (limit: { type: string; unit: number; number: number }) => {
-  const unitMap: Record<number, string> = { 1: 'Year', 2: 'Month', 3: 'Hour', 4: 'Day', 5: 'Month', 6: 'Week' }
+  const unitMap: Record<number, string> = { 1: 'Y', 2: 'M', 3: 'H', 4: 'D', 5: 'M', 6: 'W' }
   const typeLabel = limit.type === 'TOKENS_LIMIT' ? t('admin.accounts.stats.glmTokenQuota') : t('admin.accounts.stats.glmMcpQuota')
   const unitLabel = unitMap[limit.unit] || `${limit.number}${limit.unit}`
-  return `${typeLabel} (${limit.number} ${unitLabel})`
+  return `${typeLabel} (${limit.number}${unitLabel})`
 }
 
 const formatResetTime = (ms: number): string => {
@@ -1049,15 +1118,42 @@ const formatResetTime = (ms: number): string => {
 }
 
 // Kimi helpers
+const isKimi5hWindow = (limit: { window: { duration: number; timeUnit: string } }) => {
+  const { duration, timeUnit } = limit.window
+  return (timeUnit === 'TIME_UNIT_MINUTE' && duration === 300) ||
+         (timeUnit === 'TIME_UNIT_HOUR' && duration === 5)
+}
+
+const isKimiWeeklyWindow = (limit: { window: { duration: number; timeUnit: string } }) => {
+  const { duration, timeUnit } = limit.window
+  return timeUnit === 'TIME_UNIT_WEEK' ||
+         (timeUnit === 'TIME_UNIT_DAY' && duration === 7)
+}
+
+const isKimiMonthlyWindow = (limit: { window: { duration: number; timeUnit: string } }) => {
+  const { duration, timeUnit } = limit.window
+  return timeUnit === 'TIME_UNIT_MONTH' ||
+         (timeUnit === 'TIME_UNIT_DAY' && duration === 30)
+}
+
 const formatKimiWindowLabel = (limit: { window: { duration: number; timeUnit: string } }) => {
+  if (isKimi5hWindow(limit)) return '5H'
+  if (isKimiWeeklyWindow(limit)) return '1W'
+  if (isKimiMonthlyWindow(limit)) return '1M'
+
+  const { duration, timeUnit } = limit.window
+  if (timeUnit === 'TIME_UNIT_DAY' && duration === 1) return '1D'
+
   const unitMap: Record<string, string> = {
-    'TIME_UNIT_MINUTE': 'min',
+    'TIME_UNIT_MINUTE': 'm',
     'TIME_UNIT_SECOND': 's',
     'TIME_UNIT_HOUR': 'h',
-    'TIME_UNIT_DAY': 'd'
+    'TIME_UNIT_DAY': 'd',
+    'TIME_UNIT_WEEK': 'w',
+    'TIME_UNIT_MONTH': 'M'
   }
-  const unit = unitMap[limit.window.timeUnit] || limit.window.timeUnit
-  return `${limit.window.duration}${unit} window`
+  const unit = unitMap[timeUnit] || timeUnit.replace('TIME_UNIT_', '').toLowerCase()
+  return `${duration}${unit}`
 }
 
 const kimiUtilization = (limit: { detail: { limit: string; remaining: string } }) => {

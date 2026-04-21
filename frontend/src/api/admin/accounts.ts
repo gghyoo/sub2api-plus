@@ -312,6 +312,7 @@ export interface KimiLimit {
 export interface KimiUsageResponse {
   usage: {
     limit: string
+    used: string
     remaining: string
     resetTime: string
   }

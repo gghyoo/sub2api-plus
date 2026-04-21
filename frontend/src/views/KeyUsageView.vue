@@ -541,7 +541,7 @@ const ringItems = computed<RingItem[]>(() => {
       items.push({ title: t('keyUsage.totalQuota'), pct, amount: `${usd(data.quota.used)} / ${usd(data.quota.limit)}`, iconType: 'dollar' })
     }
     if (data.rate_limits) {
-      const windowLabels: Record<string, string> = { '5h': t('keyUsage.limit5h'), '1d': t('keyUsage.limitDaily'), '7d': t('keyUsage.limit7d') }
+      const windowLabels: Record<string, string> = { '5h': '5H', '1d': '1D', '7d': '1W' }
       const windowIcons: Record<string, 'clock' | 'calendar'> = { '5h': 'clock', '1d': 'calendar', '7d': 'calendar' }
       for (const rl of data.rate_limits) {
         const pct = rl.limit > 0 ? Math.min(Math.round((rl.used / rl.limit) * 100), 100) : 0
@@ -558,9 +558,9 @@ const ringItems = computed<RingItem[]>(() => {
     if (data.subscription) {
       const sub = data.subscription
       const limits = [
-        { label: t('keyUsage.limitDaily'), usage: sub.daily_usage_usd, limit: sub.daily_limit_usd },
-        { label: t('keyUsage.limitWeekly'), usage: sub.weekly_usage_usd, limit: sub.weekly_limit_usd },
-        { label: t('keyUsage.limitMonthly'), usage: sub.monthly_usage_usd, limit: sub.monthly_limit_usd },
+        { label: 'D', usage: sub.daily_usage_usd, limit: sub.daily_limit_usd },
+        { label: 'W', usage: sub.weekly_usage_usd, limit: sub.weekly_limit_usd },
+        { label: 'M', usage: sub.monthly_usage_usd, limit: sub.monthly_limit_usd },
       ]
       for (const l of limits) {
         if (l.limit != null && l.limit > 0) {
