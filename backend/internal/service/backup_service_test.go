@@ -215,7 +215,10 @@ func newTestBackupService(repo *mockSettingRepo, dumper DBDumper, store *mockObj
 	factory := func(_ context.Context, _ *BackupS3Config) (BackupObjectStore, error) {
 		return store, nil
 	}
-	return NewBackupService(repo, cfg, &plainEncryptor{}, factory, dumper)
+	webdavFactory := func(_ context.Context, _ *BackupWebDAVConfig) (BackupObjectStore, error) {
+		return store, nil
+	}
+	return NewBackupService(repo, cfg, &plainEncryptor{}, factory, webdavFactory, dumper)
 }
 
 func seedS3Config(t *testing.T, repo *mockSettingRepo) {

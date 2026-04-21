@@ -443,6 +443,15 @@ func registerBackupRoutes(admin *gin.RouterGroup, h *handler.Handlers) {
 		backup.PUT("/s3-config", h.Admin.Backup.UpdateS3Config)
 		backup.POST("/s3-config/test", h.Admin.Backup.TestS3Connection)
 
+		// WebDAV 存储配置
+		backup.GET("/webdav-config", h.Admin.Backup.GetWebDAVConfig)
+		backup.PUT("/webdav-config", h.Admin.Backup.UpdateWebDAVConfig)
+		backup.POST("/webdav-config/test", h.Admin.Backup.TestWebDAVConnection)
+
+		// 存储类型
+		backup.GET("/storage-type", h.Admin.Backup.GetStorageType)
+		backup.PUT("/storage-type", h.Admin.Backup.UpdateStorageType)
+
 		// 定时备份配置
 		backup.GET("/schedule", h.Admin.Backup.GetSchedule)
 		backup.PUT("/schedule", h.Admin.Backup.UpdateSchedule)

@@ -58,6 +58,71 @@ func (h *BackupHandler) TestS3Connection(c *gin.Context) {
 	response.Success(c, gin.H{"ok": true, "message": "connection successful"})
 }
 
+// ─── WebDAV 配置 ───
+
+func (h *BackupHandler) GetWebDAVConfig(c *gin.Context) {
+	cfg, err := h.backupService.GetWebDAVConfig(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, cfg)
+}
+
+func (h *BackupHandler) UpdateWebDAVConfig(c *gin.Context) {
+	var req service.BackupWebDAVConfig
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	cfg, err := h.backupService.UpdateWebDAVConfig(c.Request.Context(), req)
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, cfg)
+}
+
+func (h *BackupHandler) TestWebDAVConnection(c *gin.Context) {
+	var req service.BackupWebDAVConfig
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	err := h.backupService.TestWebDAVConnection(c.Request.Context(), req)
+	if err != nil {
+		response.Success(c, gin.H{"ok": false, "message": err.Error()})
+		return
+	}
+	response.Success(c, gin.H{"ok": true, "message": "connection successful"})
+}
+
+// ─── 存储类型 ───
+
+func (h *BackupHandler) GetStorageType(c *gin.Context) {
+	storageType, err := h.backupService.GetStorageType(c.Request.Context())
+	if err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"storage_type": storageType})
+}
+
+func (h *BackupHandler) UpdateStorageType(c *gin.Context) {
+	var req struct {
+		StorageType string `json:"storage_type" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		response.BadRequest(c, "Invalid request: "+err.Error())
+		return
+	}
+	if err := h.backupService.UpdateStorageType(c.Request.Context(), req.StorageType); err != nil {
+		response.ErrorFrom(c, err)
+		return
+	}
+	response.Success(c, gin.H{"storage_type": req.StorageType})
+}
+
 // ─── 定时备份 ───
 
 func (h *BackupHandler) GetSchedule(c *gin.Context) {

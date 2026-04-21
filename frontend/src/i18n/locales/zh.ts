@@ -1071,6 +1071,26 @@ export default {
         testFailed: 'S3 连接测试失败',
         saved: 'S3 配置已保存'
       },
+      storageType: {
+        title: '存储类型',
+        description: '选择备份数据使用的存储后端',
+        s3: 'S3 兼容存储',
+        webdav: 'WebDAV 存储',
+        saved: '存储类型已保存'
+      },
+      webdav: {
+        title: 'WebDAV 存储配置',
+        description: '配置 WebDAV 服务器用于备份存储',
+        url: '服务器地址',
+        username: '用户名',
+        password: '密码',
+        prefix: '路径前缀',
+        testConnection: '测试连接',
+        saved: 'WebDAV 配置已保存',
+        testSuccess: 'WebDAV 连接测试成功',
+        testFailed: 'WebDAV 连接测试失败',
+        passwordConfigured: '已配置，留空保持不变'
+      },
       schedule: {
         title: '定时备份',
         description: '配置自动定时备份',

@@ -1,7 +1,34 @@
 <template>
     <div class="space-y-6">
-      <!-- S3 Storage Config -->
+      <!-- Storage Type Selector -->
       <div class="card p-6">
+        <div class="mb-4">
+          <h3 class="text-base font-semibold text-gray-900 dark:text-white">
+            {{ t('admin.backup.storageType.title') }}
+          </h3>
+          <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+            {{ t('admin.backup.storageType.description') }}
+          </p>
+        </div>
+        <div class="flex flex-wrap gap-4">
+          <label class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-3 dark:border-dark-700 cursor-pointer" :class="storageType === 's3' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : ''">
+            <input v-model="storageType" type="radio" value="s3" class="hidden" />
+            <span class="text-sm font-medium text-gray-900 dark:text-white">{{ t('admin.backup.storageType.s3') }}</span>
+          </label>
+          <label class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-4 py-3 dark:border-dark-700 cursor-pointer" :class="storageType === 'webdav' ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' : ''">
+            <input v-model="storageType" type="radio" value="webdav" class="hidden" />
+            <span class="text-sm font-medium text-gray-900 dark:text-white">{{ t('admin.backup.storageType.webdav') }}</span>
+          </label>
+        </div>
+        <div class="mt-4">
+          <button type="button" class="btn btn-primary btn-sm" :disabled="savingStorageType" @click="saveStorageType">
+            {{ savingStorageType ? t('common.loading') : t('common.save') }}
+          </button>
+        </div>
+      </div>
+
+      <!-- S3 Storage Config -->
+      <div v-if="storageType === 's3'" class="card p-6">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 class="text-base font-semibold text-gray-900 dark:text-white">
@@ -50,6 +77,46 @@
           </button>
           <button type="button" class="btn btn-primary btn-sm" :disabled="savingS3" @click="saveS3Config">
             {{ savingS3 ? t('common.loading') : t('common.save') }}
+          </button>
+        </div>
+      </div>
+
+      <!-- WebDAV Storage Config -->
+      <div v-if="storageType === 'webdav'" class="card p-6">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h3 class="text-base font-semibold text-gray-900 dark:text-white">
+              {{ t('admin.backup.webdav.title') }}
+            </h3>
+            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              {{ t('admin.backup.webdav.description') }}
+            </p>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+          <div class="md:col-span-2">
+            <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.webdav.url') }}</label>
+            <input v-model="webdavForm.url" class="input w-full" placeholder="https://dav.example.com/backup" />
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.webdav.username') }}</label>
+            <input v-model="webdavForm.username" class="input w-full" />
+          </div>
+          <div>
+            <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.webdav.password') }}</label>
+            <input v-model="webdavForm.password" type="password" class="input w-full" :placeholder="webdavPasswordConfigured ? t('admin.backup.webdav.passwordConfigured') : ''" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="mb-1 block text-xs font-medium text-gray-600 dark:text-gray-400">{{ t('admin.backup.webdav.prefix') }}</label>
+            <input v-model="webdavForm.prefix" class="input w-full" placeholder="backups/" />
+          </div>
+        </div>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <button type="button" class="btn btn-secondary btn-sm" :disabled="testingWebDAV" @click="testWebDAV">
+            {{ testingWebDAV ? t('common.loading') : t('admin.backup.webdav.testConnection') }}
+          </button>
+          <button type="button" class="btn btn-primary btn-sm" :disabled="savingWebDAV" @click="saveWebDAVConfig">
+            {{ savingWebDAV ? t('common.loading') : t('common.save') }}
           </button>
         </div>
       </div>
@@ -283,10 +350,14 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { adminAPI } from '@/api'
 import { useAppStore } from '@/stores'
-import type { BackupS3Config, BackupScheduleConfig, BackupRecord } from '@/api/admin/backup'
+import type { BackupS3Config, BackupWebDAVConfig, BackupScheduleConfig, BackupRecord } from '@/api/admin/backup'
 
 const { t } = useI18n()
 const appStore = useAppStore()
+
+// Storage type
+const storageType = ref('s3')
+const savingStorageType = ref(false)
 
 // S3 config
 const s3Form = ref<BackupS3Config>({
@@ -301,6 +372,17 @@ const s3Form = ref<BackupS3Config>({
 const s3SecretConfigured = ref(false)
 const savingS3 = ref(false)
 const testingS3 = ref(false)
+
+// WebDAV config
+const webdavForm = ref<BackupWebDAVConfig>({
+  url: '',
+  username: '',
+  password: '',
+  prefix: 'backups/',
+})
+const webdavPasswordConfigured = ref(false)
+const savingWebDAV = ref(false)
+const testingWebDAV = ref(false)
 
 // Schedule config
 const scheduleForm = ref<BackupScheduleConfig>({
@@ -482,6 +564,71 @@ async function testS3() {
   }
 }
 
+async function loadStorageType() {
+  try {
+    const result = await adminAPI.backup.getStorageType()
+    storageType.value = result.storage_type || 's3'
+  } catch (error) {
+    appStore.showError((error as { message?: string })?.message || t('errors.networkError'))
+  }
+}
+
+async function saveStorageType() {
+  savingStorageType.value = true
+  try {
+    await adminAPI.backup.updateStorageType(storageType.value)
+    appStore.showSuccess(t('admin.backup.storageType.saved'))
+  } catch (error) {
+    appStore.showError((error as { message?: string })?.message || t('errors.networkError'))
+  } finally {
+    savingStorageType.value = false
+  }
+}
+
+async function loadWebDAVConfig() {
+  try {
+    const cfg = await adminAPI.backup.getWebDAVConfig()
+    webdavForm.value = {
+      url: cfg.url || '',
+      username: cfg.username || '',
+      password: '',
+      prefix: cfg.prefix || 'backups/',
+    }
+    webdavPasswordConfigured.value = Boolean(cfg.username)
+  } catch (error) {
+    appStore.showError((error as { message?: string })?.message || t('errors.networkError'))
+  }
+}
+
+async function saveWebDAVConfig() {
+  savingWebDAV.value = true
+  try {
+    await adminAPI.backup.updateWebDAVConfig(webdavForm.value)
+    appStore.showSuccess(t('admin.backup.webdav.saved'))
+    await loadWebDAVConfig()
+  } catch (error) {
+    appStore.showError((error as { message?: string })?.message || t('errors.networkError'))
+  } finally {
+    savingWebDAV.value = false
+  }
+}
+
+async function testWebDAV() {
+  testingWebDAV.value = true
+  try {
+    const result = await adminAPI.backup.testWebDAVConnection(webdavForm.value)
+    if (result.ok) {
+      appStore.showSuccess(result.message || t('admin.backup.webdav.testSuccess'))
+    } else {
+      appStore.showError(result.message || t('admin.backup.webdav.testFailed'))
+    }
+  } catch (error) {
+    appStore.showError((error as { message?: string })?.message || t('errors.networkError'))
+  } finally {
+    testingWebDAV.value = false
+  }
+}
+
 async function loadSchedule() {
   try {
     const cfg = await adminAPI.backup.getSchedule()
@@ -605,7 +752,7 @@ function formatDate(value?: string): string {
 
 onMounted(async () => {
   document.addEventListener('visibilitychange', handleVisibilityChange)
-  await Promise.all([loadS3Config(), loadSchedule(), loadBackups()])
+  await Promise.all([loadStorageType(), loadS3Config(), loadWebDAVConfig(), loadSchedule(), loadBackups()])
 
   // 如果有正在 running 的备份，恢复轮询
   const runningBackup = backups.value.find(r => r.status === 'running')

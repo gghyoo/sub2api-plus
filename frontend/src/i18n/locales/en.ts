@@ -1049,6 +1049,26 @@ export default {
         testFailed: 'S3 connection test failed',
         saved: 'S3 configuration saved'
       },
+      storageType: {
+        title: 'Storage Type',
+        description: 'Choose the storage backend for backups',
+        s3: 'S3 Compatible Storage',
+        webdav: 'WebDAV Storage',
+        saved: 'Storage type saved'
+      },
+      webdav: {
+        title: 'WebDAV Storage Configuration',
+        description: 'Configure WebDAV server for backup storage',
+        url: 'Server URL',
+        username: 'Username',
+        password: 'Password',
+        prefix: 'Path Prefix',
+        testConnection: 'Test Connection',
+        saved: 'WebDAV configuration saved',
+        testSuccess: 'WebDAV connection test successful',
+        testFailed: 'WebDAV connection test failed',
+        passwordConfigured: 'Already configured, leave empty to keep'
+      },
       schedule: {
         title: 'Scheduled Backup',
         description: 'Configure automatic scheduled backups',
