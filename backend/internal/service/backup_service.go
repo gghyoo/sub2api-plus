@@ -31,15 +31,15 @@ const (
 )
 
 var (
-	ErrBackupS3NotConfigured     = infraerrors.BadRequest("BACKUP_S3_NOT_CONFIGURED", "backup S3 storage is not configured")
-	ErrBackupWebDAVNotConfigured = infraerrors.BadRequest("BACKUP_WEBDAV_NOT_CONFIGURED", "backup WebDAV storage is not configured")
+	ErrBackupS3NotConfigured      = infraerrors.BadRequest("BACKUP_S3_NOT_CONFIGURED", "backup S3 storage is not configured")
+	ErrBackupWebDAVNotConfigured  = infraerrors.BadRequest("BACKUP_WEBDAV_NOT_CONFIGURED", "backup WebDAV storage is not configured")
 	ErrBackupStorageNotConfigured = infraerrors.BadRequest("BACKUP_STORAGE_NOT_CONFIGURED", "backup storage is not configured")
-	ErrBackupNotFound            = infraerrors.NotFound("BACKUP_NOT_FOUND", "backup record not found")
-	ErrBackupInProgress          = infraerrors.Conflict("BACKUP_IN_PROGRESS", "a backup is already in progress")
-	ErrRestoreInProgress         = infraerrors.Conflict("RESTORE_IN_PROGRESS", "a restore is already in progress")
-	ErrBackupRecordsCorrupt      = infraerrors.InternalServer("BACKUP_RECORDS_CORRUPT", "backup records data is corrupted")
-	ErrBackupS3ConfigCorrupt     = infraerrors.InternalServer("BACKUP_S3_CONFIG_CORRUPT", "backup S3 config data is corrupted")
-	ErrBackupWebDAVConfigCorrupt = infraerrors.InternalServer("BACKUP_WEBDAV_CONFIG_CORRUPT", "backup WebDAV config data is corrupted")
+	ErrBackupNotFound             = infraerrors.NotFound("BACKUP_NOT_FOUND", "backup record not found")
+	ErrBackupInProgress           = infraerrors.Conflict("BACKUP_IN_PROGRESS", "a backup is already in progress")
+	ErrRestoreInProgress          = infraerrors.Conflict("RESTORE_IN_PROGRESS", "a restore is already in progress")
+	ErrBackupRecordsCorrupt       = infraerrors.InternalServer("BACKUP_RECORDS_CORRUPT", "backup records data is corrupted")
+	ErrBackupS3ConfigCorrupt      = infraerrors.InternalServer("BACKUP_S3_CONFIG_CORRUPT", "backup S3 config data is corrupted")
+	ErrBackupWebDAVConfigCorrupt  = infraerrors.InternalServer("BACKUP_WEBDAV_CONFIG_CORRUPT", "backup WebDAV config data is corrupted")
 )
 
 // ─── 接口定义 ───
@@ -85,7 +85,7 @@ func (c *BackupS3Config) IsConfigured() bool {
 
 // BackupWebDAVConfig WebDAV 存储配置
 type BackupWebDAVConfig struct {
-	URL      string `json:"url"`      // e.g. https://dav.example.com/backup
+	URL      string `json:"url"` // e.g. https://dav.example.com/backup
 	Username string `json:"username"`
 	Password string `json:"password,omitempty"`
 	Prefix   string `json:"prefix"` // 路径前缀
@@ -126,20 +126,20 @@ type BackupRecord struct {
 
 // BackupService 数据库备份恢复服务
 type BackupService struct {
-	settingRepo      SettingRepository
-	dbCfg            *config.DatabaseConfig
-	encryptor        SecretEncryptor
-	storeFactory     BackupObjectStoreFactory
-	webdavFactory    BackupWebDAVStoreFactory
-	dumper           DBDumper
+	settingRepo   SettingRepository
+	dbCfg         *config.DatabaseConfig
+	encryptor     SecretEncryptor
+	storeFactory  BackupObjectStoreFactory
+	webdavFactory BackupWebDAVStoreFactory
+	dumper        DBDumper
 
 	opMu      sync.Mutex // 保护 backingUp/restoring 标志
 	backingUp bool
 	restoring bool
 
-	storeMu sync.Mutex // 保护 store/s3Cfg/webdavCfg 缓存
-	store   BackupObjectStore
-	s3Cfg   *BackupS3Config
+	storeMu   sync.Mutex // 保护 store/s3Cfg/webdavCfg 缓存
+	store     BackupObjectStore
+	s3Cfg     *BackupS3Config
 	webdavCfg *BackupWebDAVConfig
 
 	recordsMu sync.Mutex // 保护 records 的 load/save 操作
