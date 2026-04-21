@@ -26,11 +26,13 @@
 # 可通过环境变量覆盖默认配置：
 #   SERVER_HOST=192.168.160.145 SERVER_USER=ggh bash deploy/build-and-deploy.sh
 #
+# 生产服务器（192.168.160.145）请使用 docker compose pull 更新，不走此脚本。
+#
 
 set -euo pipefail
 
-# 默认配置（与 CLAUDE.md 中的部署服务器一致）
-SERVER_HOST="${SERVER_HOST:-192.168.160.145}"
+# 默认配置：测试服务器（ggh@10.10.200.21）
+SERVER_HOST="${SERVER_HOST:-10.10.200.21}"
 SERVER_USER="${SERVER_USER:-ggh}"
 REMOTE_DIR="${REMOTE_DIR:-/home/ggh/dockers/sub2api-plus}"
 CONTAINER_NAME="${CONTAINER_NAME:-sub2api-plus}"

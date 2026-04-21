@@ -144,35 +144,37 @@ git add backend/cmd/server/VERSION
 git commit -m "chore: sync VERSION to x.x.x [skip ci]"
 git push origin main
 
-# 5. 创建 tag 并推送（触发 release workflow 构建 Docker 镜像）
-git tag vx.x.x
+# 5. 创建带注释的 tag 并推送（触发 release workflow 构建 Docker 镜像）
+#    重要：必须使用 annotated tag（-a），release.yml 才能正确读取 tag message 作为 Release Notes
+git tag -a vx.x.x -m "变更说明..."
 git push origin vx.x.x
 
-# 6. 创建 GitHub Release
-gh release create vx.x.x --repo gghyoo/sub2api-plus --title "vx.x.x" --notes "变更说明..."
-
-# 7. （可选）将新版本部署到服务器，参考上方"Deploy to Server"流程
+# 6. 等待 release workflow 完成后，GitHub Release 会自动创建
+#    检查 release workflow 状态：
+gh run list --limit 3 --repo gghyoo/sub2api-plus --workflow=release.yml
 ```
 
 ### 注意事项
 
 - `[skip ci]` 避免版本号提交触发额外的 CI 运行
-- tag 推送会触发 `release.yml` workflow，自动构建多架构 Docker 镜像并推送到 GHCR + DockerHub
+- **tag 必须推送到 GitHub**：只有推送到远程的 `v*` tag 才会触发 `release.yml` workflow
+- 使用 annotated tag（`git tag -a`），tag message 会自动成为 GitHub Release 的发布说明
 - 如果 CI 失败，先修复问题再重新推送，不要跳过 CI 直接发布
+- tag 推送后 release.yml 会自动：构建前端 → 编译多架构二进制 → 构建 Docker 镜像 → 推送到 GHCR + DockerHub → 创建 GitHub Release → 发送 Telegram 通知
 
-## 快速部署（二进制热更新）
+## 测试部署（二进制热更新）
 
-当需要快速将本地修改部署到服务器（不经过 Docker 镜像构建），可使用以下脚本：
+快速将本地修改部署到测试服务器（`ggh@10.10.200.21`），用于功能验证：
 
 ```bash
 # 一键完成：编译前端 → 编译后端（嵌入前端）→ 上传二进制 → 替换容器内文件 → 重启 → 健康检查
 bash deploy/build-and-deploy.sh
 ```
 
-脚本默认连接到 `ggh@192.168.160.145` 的 `/home/ggh/dockers/sub2api-plus` 目录。可通过环境变量覆盖：
+脚本默认连接测试服务器 `ggh@10.10.200.21`。可通过环境变量覆盖：
 
 ```bash
-SERVER_HOST=10.10.200.21 SERVER_USER=ggh bash deploy/build-and-deploy.sh
+SERVER_HOST=192.168.160.21 SERVER_USER=ggh bash deploy/build-and-deploy.sh
 ```
 
 **平台说明**：
@@ -180,6 +182,18 @@ SERVER_HOST=10.10.200.21 SERVER_USER=ggh bash deploy/build-and-deploy.sh
 - Windows：请通过 **Git Bash**（随 Git for Windows 安装）或 **WSL** 执行
 
 脚本会交叉编译 `GOOS=linux GOARCH=amd64` 的二进制并嵌入前端产物，通过 `scp` 上传后执行 `docker cp` + `docker restart` 完成热更新。
+
+**注意**：热更新仅在当前容器生命周期内有效。`docker compose down && up` 会恢复为镜像内版本。
+
+## 生产服务器更新
+
+生产服务器（`192.168.160.145`）只通过 `docker pull` 拉取最新镜像更新：
+
+```bash
+ssh ggh@192.168.160.145
+cd /home/ggh/dockers/sub2api-plus
+docker compose pull && docker compose up -d
+```
 
 ## Local Dev Environment
 
